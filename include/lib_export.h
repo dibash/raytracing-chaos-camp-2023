@@ -10,4 +10,9 @@
   #define ChaosRendererAPI
 #endif
 
+extern "C" {
+
 ChaosRendererAPI void render(void* pixels, float t);
+
+
+}
