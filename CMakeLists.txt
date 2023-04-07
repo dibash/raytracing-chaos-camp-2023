@@ -40,7 +40,7 @@ install(TARGETS ${TARGET_LIB_NAME} DESTINATION lib)
 #install(FILES ${LIB_HEADERS} DESTINATION include/${TARGET_LIB_NAME})
 
 # Add a way to start the Python GUI directly from VS
-if ("${CMAKE_GENERATOR}" MATCHES "Visual Studio"
+if ("${CMAKE_GENERATOR}" MATCHES "Visual Studio")
     #set(VENV_PATH CACHE "${CMAKE_CURRENT_SOURCE_DIR}/.venv" STRING "Path to the Python virtual environment")
     set(VENV_PATH "${CMAKE_CURRENT_SOURCE_DIR}/.venv")
 
