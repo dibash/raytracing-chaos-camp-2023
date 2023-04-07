@@ -2,3 +2,4 @@ build
 install
 .venv
 .vscode
+__pycache__

@@ -13,6 +13,6 @@
 extern "C" {
 
 ChaosRendererAPI void render(void* pixels, float t);
-
+ChaosRendererAPI void render2(void* pixels, const float* vertices, const int* triangleIndices, int trianglesCount);
 
 }

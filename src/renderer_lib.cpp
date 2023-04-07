@@ -3,16 +3,12 @@
 
 #include <vector>
 #include <cmath>
-#include <memory>
 #include <algorithm>
 #include <execution>
 
-using std::unique_ptr;
-using std::array;
 
 const size_t WIDTH = 1920;
 const size_t HEIGHT = 1080;
-
 
 
 bool triangleIntersection(Vector rayOrigin, Vector rayDir, const NaiveTriangle& tri, IntersectionData& idata)
@@ -76,29 +72,14 @@ bool triangleIntersection(Vector rayOrigin, Vector rayDir, const NaiveTriangle& 
     return true;
 }
 
-std::vector<NaiveTriangle> generate_triangles();
-
-void renderImage(Color* pixels, real_t t)
+void renderImage(Color* pixels, const std::vector<NaiveTriangle>& triangles)
 {
-    const std::vector<NaiveTriangle> tri = generate_triangles();
-
-    const Vector cameraPosition{ 0, 0, t };
+    const std::vector<NaiveTriangle>& tri = triangles;
+    const Vector cameraPosition{ 0, 0, 0 };
     const Vector cameraForward = normalized({ 0, 0, -1 });
 
     const real_t fov = 90; // field of view in degrees
     const real_t scale = std::tanf((fov * 0.5) * PI / 180);
-
-    /*
-    std::for_each(
-        std::execution::par,
-        foo.begin(),
-        foo.end(),
-        [](auto&& item)
-        {
-            //do stuff with item
-        });*/
-
-
 
     std::vector<int> height(HEIGHT);
     std::iota(height.begin(), height.end(), 0);
@@ -130,7 +111,6 @@ void renderImage(Color* pixels, real_t t)
 
                 real_t scaledX = screenX * scale;
                 real_t scaledY = screenY * scale;
-
 
                 // create ray direction vector
                 Vector rayDirection{ scaledX, scaledY, cameraForward.z };
