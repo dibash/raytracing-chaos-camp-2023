@@ -2,6 +2,7 @@
 
 using std::unique_ptr;
 
+#include "utils.h"
 #include "lib_export.h"
 #include "gui_win.hpp"
 
@@ -12,18 +13,18 @@ int main(int argc, char* argv[])
 {
     Window window(WIDTH, HEIGHT, "Raytracing 2023");
 
-    unique_ptr<uint8_t> pixelData{ new uint8_t[WIDTH * HEIGHT * 3] };
-    uint8_t* pixels = pixelData.get();
+    unique_ptr<Color> pixelData{ new Color[WIDTH * HEIGHT] };
+    Color* pixels = pixelData.get();
 
-    for (float t = 10; t > 0; t -= 0.1f) {
+    for (float t = 0.1; t > 0; t -= 0.1f) {
         // Fill the pixel data
         render(pixels, t);
         PixelBuffer img(WIDTH, HEIGHT);
         for (int y = 0; y < HEIGHT; y++) {
             for (int x = 0; x < WIDTH; x++) {
-                int R = pixels[(y*WIDTH + x)*3 + 0];
-                int G = pixels[(y*WIDTH + x)*3 + 1];
-                int B = pixels[(y*WIDTH + x)*3 + 2];
+                int R = pixels[(y*WIDTH + x)].r * 255.999f;
+                int G = pixels[(y*WIDTH + x)].g * 255.999f;
+                int B = pixels[(y*WIDTH + x)].b * 255.999f;
                 DWORD col = (R << 16) + (G << 8) + B;
                 window.setBufferPixel(x, y, col);
             }

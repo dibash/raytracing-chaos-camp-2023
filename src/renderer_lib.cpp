@@ -68,8 +68,25 @@ bool triangleIntersection(Vector rayOrigin, Vector rayDir, const NaiveTriangle& 
         return false;
     }
 
+    idata.normal = normalized(cross(e1, e2));
     // The ray intersects the triangle
     return true;
+}
+
+Color shade(Vector rayDirection, const IntersectionData &idata)
+{
+    const real_t theta = dot(-rayDirection, idata.normal);
+    const real_t val = theta / 3 * 2 + 1.0f / 3;
+    return { val * 0.5f, val * 0.3f, val * 0.9f };
+}
+
+Vector generateCameraRay(int x, int y, real_t scale)
+{
+    const real_t aspect = real_t(WIDTH) / real_t(HEIGHT);
+    real_t X = (2.0f * (x + 0.5f) / WIDTH - 1.0f) * aspect * scale;
+    real_t Y = (1.0f - (2.0f * (y + 0.5f) / HEIGHT)) * scale;
+
+    return normalized({ X, Y, -1 });
 }
 
 void renderImage(Color* pixels, const std::vector<NaiveTriangle>& triangles)
@@ -88,58 +105,29 @@ void renderImage(Color* pixels, const std::vector<NaiveTriangle>& triangles)
         std::execution::par,
         height.begin(),
         height.end(),
-        [&](auto&& y) {
-
+        [&](int y) {
             IntersectionData idata;
-
-            //for (int y = 0; y < HEIGHT; y++) {
+            IntersectionData closest_idata;
             for (int x = 0; x < WIDTH; x++) {
-                // find center of pixel
-                real_t pixelCenterX = x + 0.5f;
-                real_t pixelCenterY = y + 0.5f;
-
-                // convert raster coordinates to NDC space
-                real_t ndcX = pixelCenterX / WIDTH;
-                real_t ndcY = pixelCenterY / HEIGHT;
-
-                // convert NDC coordinates to Screen space
-                real_t screenX = (2.0f * ndcX) - 1.0f;
-                real_t screenY = 1.0f - (2.0f * ndcY);
-
-                // consider aspect ratio
-                screenX *= real_t(WIDTH) / real_t(HEIGHT);
-
-                real_t scaledX = screenX * scale;
-                real_t scaledY = screenY * scale;
-
-                // create ray direction vector
-                Vector rayDirection{ scaledX, scaledY, cameraForward.z };
-
-                // normalize ray direction
-                rayDirection = normalized(rayDirection);
-
-                //pixels[y][x] = { 24, 24, 24 };
-
-                pixels[y*WIDTH + x] = {
-                    uint8_t(std::abs(rayDirection.x) * 255),
-                    uint8_t(std::abs(rayDirection.y) * 255),
-                    uint8_t(std::abs(rayDirection.z / 2.0f) * 255),
-                };
-
-                real_t closest_t = 1e30f;
+                Vector rayDirection = generateCameraRay(x, y, scale);
+                closest_idata.t = 1e30f;
                 for (size_t i = 0; i < tri.size(); i++) {
                     bool intersection = triangleIntersection(cameraPosition, rayDirection, tri[i], idata);
-                    if (intersection && idata.t < closest_t) {
-                        //pixels[y][x] = { uint8_t(idata.u * 240), uint8_t(idata.v * 240), 30 };
-                        const Vector e1 = tri[i].v2 - tri[i].v1;
-                        const Vector e2 = tri[i].v3 - tri[i].v1;
-                        const Vector N = normalized(cross(e1, e2));
-                        //pixels[y][x] = { uint8_t(N.x * 240), uint8_t(N.y * 240), uint8_t(N.z * 240) };
-                        const real_t theta = dot(-rayDirection, N);
-                        const real_t val = theta / 3 * 2 + 1.0f / 3;
-                        pixels[y*WIDTH + x] = { uint8_t(val * 120), uint8_t(val * 80), uint8_t(val * 240) };
-                        closest_t = idata.t;
+                    if (intersection && idata.t < closest_idata.t) {
+                        closest_idata = idata;
                     }
+                }
+                if (closest_idata.t < 1e30f) {
+                    pixels[y * WIDTH + x] = shade(rayDirection, closest_idata);
+                    //pixels[y * WIDTH + x] = { idata.u, idata.v, 0.1f };
+                    //pixels[y * WIDTH + x] = { idata.normal.x, idata.normal.y, idata.normal.z };
+                }
+                else {
+                    pixels[y * WIDTH + x] = {
+                        std::abs(rayDirection.x),
+                        std::abs(rayDirection.y),
+                        std::abs(rayDirection.z / 2.0f),
+                    };
                 }
             }
         }
@@ -164,7 +152,6 @@ std::vector<NaiveTriangle> generate_triangles()
         Vector(1.5f, 0, -3)
         });
 
-    // Task 4
     // Half cube
     const Vector cube_vertices[] = {
         // front side
