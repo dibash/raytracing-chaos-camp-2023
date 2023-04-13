@@ -1,9 +1,13 @@
 #pragma once
 #include <cstdint>
 
-#include "vector.h"
+typedef float real_t;
 
+const real_t EPSILON = 1e-9f;
 const real_t PI = 3.14159265359f;
+
+#include "vector.h"
+#include "matrix.h"
 
 struct Color {
     real_t r = 0;

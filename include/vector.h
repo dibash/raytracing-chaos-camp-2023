@@ -1,10 +1,8 @@
 #pragma once
 
-#include <cmath>
-#include <cstdlib>
+#include "utils.h"
 
-typedef float real_t;
-const real_t EPSILON = 1e-9f;
+#include <cmath>
 
 struct Vector {
     union {
