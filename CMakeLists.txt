@@ -21,11 +21,13 @@ set(LIB_HEADERS
     include/renderer_lib.h
     include/utils.h
     include/vector.h
+    include/scene_object.h
 )
 
 set(LIB_SOURCES
     src/lib_export.cpp
     src/renderer_lib.cpp
+    src/scene_object.cpp
 )
 
 add_library(${TARGET_LIB_NAME} SHARED "${LIB_SOURCES};${LIB_HEADERS}")

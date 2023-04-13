@@ -24,3 +24,13 @@ struct IntersectionData {
     real_t v = 0;
     Vector normal{};
 };
+
+struct Ray {
+    Vector origin = {};
+    Vector dir = {};
+};
+
+class Intersectable {
+public:
+    virtual bool intersect(Ray ray, IntersectionData& idata) const = 0;
+};

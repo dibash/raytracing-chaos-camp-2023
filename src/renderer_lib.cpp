@@ -1,5 +1,7 @@
-﻿#include "vector.h"
+﻿#include "renderer_lib.h"
+#include "vector.h"
 #include "utils.h"
+#include "scene_object.h"
 
 #include <vector>
 #include <cmath>
@@ -80,18 +82,17 @@ Color shade(Vector rayDirection, const IntersectionData &idata)
     return { val * 0.5f, val * 0.3f, val * 0.9f };
 }
 
-Vector generateCameraRay(int x, int y, real_t scale)
+Ray generateCameraRay(Vector origin, int x, int y, real_t scale)
 {
     const real_t aspect = real_t(WIDTH) / real_t(HEIGHT);
     real_t X = (2.0f * (x + 0.5f) / WIDTH - 1.0f) * aspect * scale;
     real_t Y = (1.0f - (2.0f * (y + 0.5f) / HEIGHT)) * scale;
 
-    return normalized({ X, Y, -1 });
+    return { origin, normalized({ X, Y, -1 }) };
 }
 
-void renderImage(Color* pixels, const std::vector<NaiveTriangle>& triangles)
+void renderImage(Color* pixels, const std::vector<Object>& scene)
 {
-    const std::vector<NaiveTriangle>& tri = triangles;
     const Vector cameraPosition{ 0, 0, 0 };
     const Vector cameraForward = normalized({ 0, 0, -1 });
 
@@ -109,24 +110,24 @@ void renderImage(Color* pixels, const std::vector<NaiveTriangle>& triangles)
             IntersectionData idata;
             IntersectionData closest_idata;
             for (int x = 0; x < WIDTH; x++) {
-                Vector rayDirection = generateCameraRay(x, y, scale);
+                Ray ray = generateCameraRay(cameraPosition, x, y, scale);
                 closest_idata.t = 1e30f;
-                for (size_t i = 0; i < tri.size(); i++) {
-                    bool intersection = triangleIntersection(cameraPosition, rayDirection, tri[i], idata);
+                for (size_t i = 0; i < scene.size(); i++) {
+                    bool intersection = scene[i].intersect(ray, idata);
                     if (intersection && idata.t < closest_idata.t) {
                         closest_idata = idata;
                     }
                 }
                 if (closest_idata.t < 1e30f) {
-                    pixels[y * WIDTH + x] = shade(rayDirection, closest_idata);
+                    pixels[y * WIDTH + x] = shade(ray.dir, closest_idata);
                     //pixels[y * WIDTH + x] = { idata.u, idata.v, 0.1f };
                     //pixels[y * WIDTH + x] = { idata.normal.x, idata.normal.y, idata.normal.z };
                 }
                 else {
                     pixels[y * WIDTH + x] = {
-                        std::abs(rayDirection.x),
-                        std::abs(rayDirection.y),
-                        std::abs(rayDirection.z / 2.0f),
+                        std::abs(ray.dir.x),
+                        std::abs(ray.dir.y),
+                        std::abs(ray.dir.z / 2.0f),
                     };
                 }
             }
@@ -134,67 +135,64 @@ void renderImage(Color* pixels, const std::vector<NaiveTriangle>& triangles)
     );
 }
 
-std::vector<NaiveTriangle> generate_triangles()
+std::vector<Object> generate_scene()
 {
-    std::vector<NaiveTriangle> allTriangles;
+    std::vector<Object> objects;
 
-    // Task 1
-    allTriangles.push_back({
+    Object simple_triangle({
         Vector(-1.75f, -1.75f, -3),
         Vector(1.75f, -1.75f, -3),
-        Vector(0, 1.75f, -3)
-        });
+        Vector(0, 1.75f, -3)},
+        { 0, 1, 2 }
+    );
 
-    // Task 2
-    allTriangles.push_back({
+    Object another_triangle({
         Vector(2, 2, -3),
         Vector(1, 2, -3),
-        Vector(1.5f, 0, -3)
-        });
+        Vector(1.5f, 0, -3)},
+        { 0, 1, 2 }
+    );
 
     // Half cube
-    const Vector cube_vertices[] = {
+    Object half_cube({
         // front side
-        Vector{-0.139214f, -0.3f, -1.57511f},
-        Vector{ 0.024891f, -0.3f, -1.46079f},
-        Vector{ 0.024891f, -0.1f, -1.46079f},
-        Vector{-0.139214f, -0.1f, -1.57511f},
+        Vector(-0.139214f, -0.3f, -1.57511f),
+        Vector(0.024891f, -0.3f, -1.46079f),
+        Vector(0.024891f, -0.1f, -1.46079f),
+        Vector(-0.139214f, -0.1f, -1.57511f),
         // back side
-        Vector{-0.024890f, -0.3f, -1.83921f},
-        Vector{ 0.139214f, -0.3f, -1.72489f},
-        Vector{ 0.139214f, -0.1f, -1.72489f},
-        Vector{-0.024890f, -0.1f, -1.83921f},
-    };
-    std::vector<NaiveTriangle> cube = {
-        // front face
-        {cube_vertices[0], cube_vertices[1], cube_vertices[2]},
-        {cube_vertices[0], cube_vertices[2], cube_vertices[3]},
-        // side face
-        {cube_vertices[1], cube_vertices[5], cube_vertices[6]},
-        {cube_vertices[1], cube_vertices[6], cube_vertices[2]},
-        // top face
-        {cube_vertices[3], cube_vertices[2], cube_vertices[6]},
-        {cube_vertices[3], cube_vertices[6], cube_vertices[7]},
-    };
-    allTriangles.insert(allTriangles.end(), cube.cbegin(), cube.cend());
+        Vector(-0.024890f, -0.3f, -1.83921f),
+        Vector(0.139214f, -0.3f, -1.72489f),
+        Vector(0.139214f, -0.1f, -1.72489f),
+        Vector(-0.024890f, -0.1f, -1.83921f)},
+        {
+        0, 1, 2,
+        0, 2, 3,
+        1, 5, 6,
+        1, 6, 2,
+        3, 2, 6,
+        3, 6, 7
+    });
 
-
-    const Vector prism_vertices[] = {
+    Object prism ({
         Vector(-1.4299746f, -0.75f, -1.82386f),
         Vector(-1.1699746f, -0.75f, -1.56386f),
         Vector(-1.4299746f, -0.75f, -1.30386f),
         Vector(-1.6899746f, -0.75f, -1.56386f),
         Vector(-1.4299746f, -0.25f, -1.56386f)
-    };
-    std::vector<NaiveTriangle> prism = {
-        {prism_vertices[0], prism_vertices[4], prism_vertices[1]},
-        {prism_vertices[1], prism_vertices[4], prism_vertices[2]},
-        {prism_vertices[2], prism_vertices[3], prism_vertices[0]},
-        {prism_vertices[2], prism_vertices[4], prism_vertices[3]},
-        {prism_vertices[2], prism_vertices[0], prism_vertices[1]},
-        {prism_vertices[3], prism_vertices[4], prism_vertices[0]},
-    };
-    allTriangles.insert(allTriangles.end(), prism.cbegin(), prism.cend());
+    },{
+        0, 4, 1,
+        1, 4, 2,
+        2, 3, 0,
+        2, 4, 3,
+        2, 0, 1,
+        3, 4, 0,
+    });
 
-    return allTriangles;
+    objects.push_back(simple_triangle);
+    objects.push_back(another_triangle);
+    objects.push_back(half_cube);
+    objects.push_back(prism);
+
+    return objects;
 }
