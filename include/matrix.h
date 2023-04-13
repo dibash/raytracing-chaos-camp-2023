@@ -4,15 +4,36 @@
 #include "vector.h"
 
 struct Matrix {
+    union {
+        struct {
+            Vector r1;
+            Vector r2;
+            Vector r3;
+        };
+        real_t m[3][3];
+    };
 
-    real_t m[3][3] = {0,};
+    Matrix()
+        : r1({ 1,0,0 })
+        , r2({ 0,1,0 })
+        , r3({ 0,0,1 })
+    {}
 
+    /// <summary>
+    /// Create an identity matrix. Convenience method - same as default ctor
+    /// </summary>
+    /// <returns> An identity matrix </returns>
     static Matrix Identity()
     {
-        Matrix m;
-        return Matrix::Scale(1, 1, 1);
+        return Matrix();
     }
 
+    /// <summary>
+    /// Create a rotation matrix around a given axis
+    /// </summary>
+    /// <param name="angle"> The rotation angle in radians </param>
+    /// <param name="axis"> The axis around which the rotation will be </param>
+    /// <returns> A rotation matrix </returns>
     static Matrix Rotation(real_t angle, Vector axis)
     {
         Matrix mat;
@@ -36,6 +57,13 @@ struct Matrix {
         return mat;
     }
 
+    /// <summary>
+    /// Create a scaling matrix
+    /// </summary>
+    /// <param name="x"> Scale factor around X axis </param>
+    /// <param name="y"> Scale factor around Y axis </param>
+    /// <param name="z"> Scale factor around Z axis </param>
+    /// <returns> A scaling matrix </returns>
     static Matrix Scale(real_t x, real_t y, real_t z)
     {
         Matrix mat;
@@ -45,16 +73,22 @@ struct Matrix {
         return mat;
     }
 
-    Matrix operator*(const Matrix& other) const
+    Matrix& operator*=(const Matrix& other)
     {
-        Matrix result;
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
-                result.m[i][j] = m[i][0] * other.m[0][j]
+                m[i][j] = m[i][0] * other.m[0][j]
                     + m[i][1] * other.m[1][j]
                     + m[i][2] * other.m[2][j];
             }
         }
+        return *this;
+    }
+
+    Matrix operator*(const Matrix& other) const
+    {
+        Matrix result(*this);
+        result *= other;
         return result;
     }
 
