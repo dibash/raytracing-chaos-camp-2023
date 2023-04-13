@@ -30,7 +30,7 @@ public:
     PixelBuffer& operator=(const PixelBuffer&) = delete;
 
     PixelBuffer(int w, int h) : width(w), height(h) {
-        buff = new DWORD[width * height];
+        buff = new DWORD[size_t(width) * size_t(height)];
     }
 
     void init(HWND wnd) {
