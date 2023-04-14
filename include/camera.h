@@ -48,7 +48,7 @@ public:
     }
 
     /// <summary>
-    /// Set the vertical field of view of the camera. Clamped in (0, 180)
+    /// Set the horizontal field of view of the camera. Clamped in (0, 180)
     /// </summary>
     /// <param name="fov"> Field of view angle in degrees </param>
     void setFOV(real_t fovAngle)
@@ -66,13 +66,10 @@ public:
     /// <returns> A ray with normalized direction </returns>
     Ray generateCameraRay(size_t WIDTH, size_t HEIGHT, int x, int y)
     {
-        const real_t aspect = real_t(WIDTH) / real_t(HEIGHT);
-        //const real_t hfov = atan(tan(deg2rad(fov) * 0.5f) * aspect);
-        //const real_t scale = std::tanf(hfov);
+        const real_t aspect = real_t(HEIGHT) / real_t(WIDTH);
         const real_t scale = std::tanf(deg2rad(fov) * 0.5f);
-        //const real_t scale = 1;
-        real_t X = (2.0f * (x + 0.5f) / WIDTH - 1.0f) * aspect * scale;
-        real_t Y = (1.0f - (2.0f * (y + 0.5f) / HEIGHT)) * scale;
+        real_t X = (2.0f * (x + 0.5f) / WIDTH - 1.0f) * scale;
+        real_t Y = (1.0f - (2.0f * (y + 0.5f) / HEIGHT)) * scale * aspect;
         Vector dir = normalized({ X, Y, -1 });
         dir = Matrix::Rotation(deg2rad(transforms.roll), { 0, 0, 1 }) * dir;
         dir = Matrix::Rotation(deg2rad(transforms.tilt), { 1, 0, 0 }) * dir;
