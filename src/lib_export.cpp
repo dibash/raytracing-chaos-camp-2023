@@ -2,13 +2,27 @@
 #include "renderer_lib.h"
 #include "utils.h"
 #include "scene_object.h"
+#include "camera.h"
 
 #include <algorithm>
 
 ChaosRendererAPI void render(void* pixels, float t)
 {
     std::vector<Object> scene = generate_scene();
-    renderImage((Color*)pixels, scene);
+    Camera cam({ 0, 0, 0 });
+    cam.setFOV(t);
+    renderImage((Color*)pixels, scene, cam);
+}
+
+ChaosRendererAPI void renderCamera(void* pixels, float x, float y, float z, float fov, float pan, float tilt, float roll)
+{
+    std::vector<Object> scene = generate_scene();
+    Camera cam({ x, y, z });
+    cam.setFOV(fov);
+    cam.setPan(pan);
+    cam.setTilt(tilt);
+    cam.setRoll(roll);
+    renderImage((Color*)pixels, scene, cam);
 }
 
 ChaosRendererAPI void render2(void* pixels, const float* vertices, const int* triangleIndices, int trianglesCount)

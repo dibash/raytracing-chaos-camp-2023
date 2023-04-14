@@ -32,3 +32,9 @@ class Intersectable {
 public:
     virtual bool intersect(Ray ray, IntersectionData& idata) const = 0;
 };
+
+static real_t deg2rad(real_t deg)
+{
+    static const real_t c = PI / 180;
+    return c * deg;
+}

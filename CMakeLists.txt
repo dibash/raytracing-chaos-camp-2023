@@ -22,6 +22,7 @@ set(LIB_HEADERS
     include/utils.h
     include/vector.h
     include/scene_object.h
+    include/camera.h
     include/matrix.h
 )
 

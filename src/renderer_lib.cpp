@@ -2,6 +2,7 @@
 #include "vector.h"
 #include "utils.h"
 #include "scene_object.h"
+#include "camera.h"
 
 #include <vector>
 #include <cmath>
@@ -20,23 +21,8 @@ Color shade(Vector rayDirection, const IntersectionData &idata)
     return { val * 0.5f, val * 0.3f, val * 0.9f };
 }
 
-Ray generateCameraRay(Vector origin, int x, int y, real_t scale)
+void renderImage(Color* pixels, const std::vector<Object>& scene, Camera cam)
 {
-    const real_t aspect = real_t(WIDTH) / real_t(HEIGHT);
-    real_t X = (2.0f * (x + 0.5f) / WIDTH - 1.0f) * aspect * scale;
-    real_t Y = (1.0f - (2.0f * (y + 0.5f) / HEIGHT)) * scale;
-
-    return { origin, normalized({ X, Y, -1 }) };
-}
-
-void renderImage(Color* pixels, const std::vector<Object>& scene)
-{
-    const Vector cameraPosition{ 0, 0, 0 };
-    const Vector cameraForward = normalized({ 0, 0, -1 });
-
-    const real_t fov = 90; // field of view in degrees
-    const real_t scale = std::tanf((fov * 0.5) * PI / 180);
-
     std::vector<int> height(HEIGHT);
     std::iota(height.begin(), height.end(), 0);
 
@@ -48,7 +34,7 @@ void renderImage(Color* pixels, const std::vector<Object>& scene)
             IntersectionData idata;
             IntersectionData closest_idata;
             for (int x = 0; x < WIDTH; x++) {
-                Ray ray = generateCameraRay(cameraPosition, x, y, scale);
+                Ray ray = cam.generateCameraRay(WIDTH, HEIGHT, x, y);
                 closest_idata.t = 1e30f;
                 for (size_t i = 0; i < scene.size(); i++) {
                     bool intersection = scene[i].intersect(ray, idata);
