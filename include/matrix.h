@@ -29,7 +29,7 @@ struct Matrix {
     }
 
     /// <summary>
-    /// Create a rotation matrix around a given axis. Useful for small, incremental changes (e.g. mouse rotation)
+    /// Create a rotation matrix around a given axis.
     /// </summary>
     /// <param name="angle"> The rotation angle in radians </param>
     /// <param name="axis"> The axis around which the rotation will be </param>

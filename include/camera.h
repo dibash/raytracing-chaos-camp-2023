@@ -50,7 +50,7 @@ public:
     /// <summary>
     /// Set the horizontal field of view of the camera. Clamped in (0, 180)
     /// </summary>
-    /// <param name="fov"> Field of view angle in degrees </param>
+    /// <param name="fovAngle"> Field of view angle in degrees </param>
     void setFOV(real_t fovAngle)
     {
         fov = std::clamp(fovAngle, EPSILON, 180.f - EPSILON);
@@ -70,6 +70,7 @@ public:
         const real_t scale = std::tanf(deg2rad(fov) * 0.5f);
         real_t X = (2.0f * (x + 0.5f) / WIDTH - 1.0f) * scale;
         real_t Y = (1.0f - (2.0f * (y + 0.5f) / HEIGHT)) * scale * aspect;
+
         Vector dir = normalized({ X, Y, -1 });
         dir = Matrix::Rotation(deg2rad(transforms.roll), { 0, 0, 1 }) * dir;
         dir = Matrix::Rotation(deg2rad(transforms.tilt), { 1, 0, 0 }) * dir;
