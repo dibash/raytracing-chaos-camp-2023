@@ -25,6 +25,7 @@ VIEWPORT_CHANNELS = 4
 
 dll = ctypes.WinDLL(RENDERER_LIB_FULL_PATH)
 dll.render.argtypes = [ctypes.POINTER(ctypes.c_float), ctypes.c_float]
+dll.renderCamera.argtypes = [ctypes.POINTER(ctypes.c_float)] + [ctypes.c_float] * 7
 
 
 class CodeTimer:
@@ -62,9 +63,28 @@ class App(customtkinter.CTk):
         self.canvas = customtkinter.CTkCanvas(self.viewport_frame, width=VIEWPORT_WIDTH, height=VIEWPORT_HEIGHT, highlightthickness=0, bg="#0000A3")
         self.canvas.pack(padx=0, pady=0)
 
+        # create sidebar frame with widgets
+        self.sidebar_frame = customtkinter.CTkFrame(self, width=SIDEBAR_WIDTH, corner_radius=0)
+        self.sidebar_frame.grid(row=0, column=1, sticky="nsew")
+        self.sidebar_frame.grid_rowconfigure(9, weight=1)
+        self.logo_label = customtkinter.CTkLabel(self.sidebar_frame, text="Ray Tracing 2023", font=customtkinter.CTkFont(size=20, weight="bold"))
+        self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
+
+        self.sliders = {}
+        self.addSlider(1, 'x',     0, -10,  10, 100)
+        self.addSlider(2, 'y',     0, -10,  10, 100)
+        self.addSlider(3, 'z',     0, -10,  10, 100)
+        self.addSlider(4, 'fov',  90,   0, 180, 180)
+        self.addSlider(5, 'pan',   0, -90,  90, 180)
+        self.addSlider(6, 'tilt',  0, -90,  90, 180)
+        self.addSlider(7, 'roll',  0, -90,  90, 180)
+
+        self.sidebar_button_1 = customtkinter.CTkButton(self.sidebar_frame, text='Render', command=self.render_button_event)
+        self.sidebar_button_1.grid(row=8, column=0, padx=20, pady=10)
+
         with CodeTimer('Render'):
             self.c_buffer = (ctypes.c_float * (VIEWPORT_WIDTH * VIEWPORT_HEIGHT * VIEWPORT_CHANNELS))()
-            dll.render(self.c_buffer, 0)
+            dll.render(self.c_buffer, 90)
 
         with CodeTimer('Pixel conversion'):
             np_array = np.frombuffer(self.c_buffer, dtype=np.float32)
@@ -75,24 +95,36 @@ class App(customtkinter.CTk):
             self.img = ImageTk.PhotoImage(self.pixels)
             self.canvas.create_image((VIEWPORT_WIDTH/2, VIEWPORT_HEIGHT/2), image=self.img, state="normal")
 
-        # create sidebar frame with widgets
-        self.sidebar_frame = customtkinter.CTkFrame(self, width=SIDEBAR_WIDTH, corner_radius=0)
-        self.sidebar_frame.grid(row=0, column=1, sticky="nsew")
-        self.sidebar_frame.grid_rowconfigure(4, weight=1)
-        self.logo_label = customtkinter.CTkLabel(self.sidebar_frame, text="Ray Tracing 2023", font=customtkinter.CTkFont(size=20, weight="bold"))
-        self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
+    def addSlider(self, row, name, v, vmin, vmax, vsteps):
+        slider_frame = customtkinter.CTkFrame(self.sidebar_frame, corner_radius=0)
+        slider_frame.grid(row=row)
+        label = customtkinter.CTkLabel(slider_frame, text=f'{name}: {v}')
+        label.pack()
+        slider = customtkinter.CTkSlider(slider_frame, from_=vmin, to=vmax, number_of_steps=vsteps)
+        slider.pack(padx=(20, 10), pady=(10, 10))
+        def command(val):
+            label.configure(require_redraw=True, text=f'{name}: {val:.0f}')
+            self.render_button_event()
+        slider.configure(command=command)
+        slider.set(v)
+        class Slider(object):
+            pass
+        slider_obj = Slider()
+        slider_obj.slider = slider
+        slider_obj.label = label
+        self.sliders[name] = slider_obj
 
-        self.slider_1 = customtkinter.CTkSlider(self.sidebar_frame, from_=10, to=-1, number_of_steps=100)
-        self.slider_1.grid(row=1, column=0, padx=(20, 10), pady=(10, 10), sticky="ew")
-        self.sidebar_button_1 = customtkinter.CTkButton(self.sidebar_frame, text='Render', command=self.render_button_event)
-        self.sidebar_button_1.grid(row=2, column=0, padx=20, pady=10)
-
-        self.slider_1.set(0)
-        self.slider_1.configure(command=lambda _: self.render_button_event())
 
     def render_button_event(self):
         #with CodeTimer('Render'):
-            dll.render(self.c_buffer, self.slider_1.get())
+            x = self.sliders['x'].slider.get()
+            y = self.sliders['y'].slider.get()
+            z = self.sliders['z'].slider.get()
+            fov = self.sliders['fov'].slider.get()
+            pan = self.sliders['pan'].slider.get()
+            tilt = self.sliders['tilt'].slider.get()
+            roll = self.sliders['roll'].slider.get()
+            dll.renderCamera(self.c_buffer, x, y, z, fov, pan, tilt, roll)
 
         #with CodeTimer('Pixel conversion'):
             np_array = np.frombuffer(self.c_buffer, dtype=np.float32)
