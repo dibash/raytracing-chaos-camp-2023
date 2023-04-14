@@ -29,7 +29,7 @@ struct Matrix {
     }
 
     /// <summary>
-    /// Create a rotation matrix around a given axis
+    /// Create a rotation matrix around a given axis. Useful for small, incremental changes (e.g. mouse rotation)
     /// </summary>
     /// <param name="angle"> The rotation angle in radians </param>
     /// <param name="axis"> The axis around which the rotation will be </param>
@@ -100,4 +100,14 @@ struct Matrix {
         result.z = m[2][0] * v.x + m[2][1] * v.y + m[2][2] * v.z;
         return result;
     }
+
+    Matrix transposed() const
+    {
+        Matrix t;
+        t.r1 = { m[0][0], m[1][0], m[2][0] };
+        t.r2 = { m[0][1], m[1][1], m[2][1] };
+        t.r3 = { m[0][2], m[1][2], m[2][2] };
+        return t;
+    }
+
 };

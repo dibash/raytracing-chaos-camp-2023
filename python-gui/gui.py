@@ -71,13 +71,13 @@ class App(customtkinter.CTk):
         self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
 
         self.sliders = {}
-        self.addSlider(1, 'x',     0, -10,  10, 100)
-        self.addSlider(2, 'y',     0, -10,  10, 100)
-        self.addSlider(3, 'z',     0, -10,  10, 100)
-        self.addSlider(4, 'fov',  90,   0, 180, 180)
-        self.addSlider(5, 'pan',   0, -90,  90, 180)
-        self.addSlider(6, 'tilt',  0, -90,  90, 180)
-        self.addSlider(7, 'roll',  0, -90,  90, 180)
+        self.addSlider(1, 'x',     0,  -10,   10, 100)
+        self.addSlider(2, 'y',     0,  -10,   10, 100)
+        self.addSlider(3, 'z',     0,  -10,   10, 100)
+        self.addSlider(4, 'fov',  90,    0,  180, 180)
+        self.addSlider(5, 'pan',   0, -180,  180, 360)
+        self.addSlider(6, 'tilt',  0,  -90,   90, 180)
+        self.addSlider(7, 'roll',  0,  -90,   90, 180)
 
         self.sidebar_button_1 = customtkinter.CTkButton(self.sidebar_frame, text='Render', command=self.render_button_event)
         self.sidebar_button_1.grid(row=8, column=0, padx=20, pady=10)

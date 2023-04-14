@@ -48,11 +48,20 @@ void renderImage(Color* pixels, const std::vector<Object>& scene, Camera cam)
                     //pixels[y * WIDTH + x] = { idata.normal.x, idata.normal.y, idata.normal.z };
                 }
                 else {
+                    Vector absDir{ std::abs(ray.dir.x), std::abs(ray.dir.y), std::abs(ray.dir.z) };
+                    real_t axis = std::max({ absDir.x, absDir.y, absDir.z });
+                    pixels[y * WIDTH + x] = {
+                        std::abs(absDir.x - axis) < EPSILON ? absDir.x : 0,
+                        std::abs(absDir.y - axis) < EPSILON ? absDir.y : 0,
+                        std::abs(absDir.z - axis) < EPSILON ? absDir.z : 0,
+                    };
+                    /*
                     pixels[y * WIDTH + x] = {
                         std::abs(ray.dir.x),
                         std::abs(ray.dir.y),
                         std::abs(ray.dir.z / 2.0f),
                     };
+                    */
                 }
             }
         }
