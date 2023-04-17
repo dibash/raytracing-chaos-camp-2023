@@ -9,21 +9,24 @@
 
 ChaosRendererAPI void render(void* pixels, float t)
 {
-    Scene scene;
-    scene.objects = generate_scene();
-    scene.camera = Camera({ 0, 0, 0 });
+    Scene scene("D:/dev/raytracing_2023/scenes/scene3.crtscene");
     renderImage((Color*)pixels, scene);
 }
 
 ChaosRendererAPI void renderCamera(void* pixels, float x, float y, float z, float fov, float pan, float tilt, float roll)
 {
-    Scene scene;
-    scene.objects = generate_scene();
+    Scene scene("D:/dev/raytracing_2023/scenes/scene3.crtscene");
     scene.camera = Camera({ x, y, z });
     scene.camera.setFOV(fov);
     scene.camera.setPan(pan);
     scene.camera.setTilt(tilt);
     scene.camera.setRoll(roll);
+    renderImage((Color*)pixels, scene);
+}
+
+ChaosRendererAPI void renderFile(void* pixels, const char* fileName)
+{
+    Scene scene(fileName);
     renderImage((Color*)pixels, scene);
 }
 
