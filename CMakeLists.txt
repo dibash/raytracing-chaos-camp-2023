@@ -21,9 +21,9 @@ set(LIB_HEADERS
     include/renderer_lib.h
     include/utils.h
     include/vector.h
-    include/scene_object.h
-    include/camera.h
     include/matrix.h
+    include/camera.h
+    include/scene_object.h
 )
 
 set(LIB_SOURCES
@@ -67,6 +67,8 @@ endif()
 
 set(APP_HEADERS
     include/lib_export.h
+    include/gui_win.hpp
+    include/utils.h
 )
 
 set(APP_SOURCES
