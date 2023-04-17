@@ -6,6 +6,8 @@ A simple raytracer project for the [2023 Ray Tracing course of Chaos Camp](https
 Just run CMake
 
 ```cmake
+mkdir build
+cd build
 cmake .. -DPYTHON_EXECUTABLE=C:\Python310\python.exe
 ```
 
