@@ -37,6 +37,7 @@ set(LIB_SOURCES
 add_library(${TARGET_LIB_NAME} SHARED "${LIB_SOURCES};${LIB_HEADERS}")
 target_compile_features(${TARGET_LIB_NAME} PRIVATE cxx_std_17)
 target_include_directories(${TARGET_LIB_NAME} PUBLIC include)
+target_include_directories(${TARGET_LIB_NAME} PUBLIC rapidjson/include)
 target_compile_definitions(${TARGET_LIB_NAME} PRIVATE ChaosRendererEXPORTS)
 
 install(TARGETS ${TARGET_LIB_NAME} DESTINATION lib)

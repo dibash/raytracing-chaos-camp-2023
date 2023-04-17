@@ -5,6 +5,7 @@
 #include "camera.h"
 
 #include <vector>
+#include <string>
 
 struct SceneSettings {
     size_t width = 1920;
@@ -24,8 +25,10 @@ public:
     Scene(const SceneSettings& settings)
         : settings(settings)
     {}
+    Scene(const std::string& fileName) { load(fileName); }
 
     void addObject(const Object& object);
+    void load(const std::string& fileName);
 
     // Intersectable
     bool intersect(Ray ray, IntersectionData& idata) const override;
