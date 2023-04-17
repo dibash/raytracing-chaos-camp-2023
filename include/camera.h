@@ -57,6 +57,19 @@ public:
     }
 
     /// <summary>
+    /// Calculate the rotation matrix of the camera
+    /// </summary>
+    /// <returns> Rotation matrix </returns>
+    Matrix getMatrix() const
+    {
+        Matrix m = Matrix::Identity();
+        m = Matrix::Rotation(deg2rad(transforms.roll), { 0, 0, 1 }) * m;
+        m = Matrix::Rotation(deg2rad(transforms.tilt), { 1, 0, 0 }) * m;
+        m = Matrix::Rotation(deg2rad(transforms.pan), { 0, 1, 0 }) * m;
+        return m;
+    }
+
+    /// <summary>
     /// Generate a camera ray for the given pixel coordinates
     /// </summary>
     /// <param name="WIDTH"> Width of the image in pixels </param>
@@ -71,11 +84,6 @@ public:
         real_t X = (2.0f * (x + 0.5f) / WIDTH - 1.0f) * scale;
         real_t Y = (1.0f - (2.0f * (y + 0.5f) / HEIGHT)) * scale * aspect;
 
-        Vector dir = normalized({ X, Y, -1 });
-        dir = Matrix::Rotation(deg2rad(transforms.roll), { 0, 0, 1 }) * dir;
-        dir = Matrix::Rotation(deg2rad(transforms.tilt), { 1, 0, 0 }) * dir;
-        dir = Matrix::Rotation(deg2rad(transforms.pan), { 0, 1, 0 }) * dir;
-
-        return { position, dir };
+        return { position, getMatrix() * normalized({ X, Y, -1 }) };
     }
 };

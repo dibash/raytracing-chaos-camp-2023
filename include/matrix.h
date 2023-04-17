@@ -75,11 +75,12 @@ struct Matrix {
 
     Matrix& operator*=(const Matrix& other)
     {
+        Matrix old(*this);
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
-                m[i][j] = m[i][0] * other.m[0][j]
-                    + m[i][1] * other.m[1][j]
-                    + m[i][2] * other.m[2][j];
+                m[i][j] = old.m[i][0] * other.m[0][j]
+                    + old.m[i][1] * other.m[1][j]
+                    + old.m[i][2] * other.m[2][j];
             }
         }
         return *this;
