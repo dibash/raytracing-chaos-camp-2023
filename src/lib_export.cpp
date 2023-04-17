@@ -19,7 +19,7 @@ ChaosRendererAPI void renderCamera(void* pixels, float x, float y, float z, floa
 {
     Scene scene;
     scene.objects = generate_scene();
-    scene.camera = Camera({ 0, 0, 0 });
+    scene.camera = Camera({ x, y, z });
     scene.camera.setFOV(fov);
     scene.camera.setPan(pan);
     scene.camera.setTilt(tilt);
