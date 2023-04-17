@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image, ImageTk
 
 import ctypes
-import distutils
+import distutils.ccompiler
 import os
 import timeit
 
