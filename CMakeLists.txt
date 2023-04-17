@@ -42,13 +42,21 @@ install(TARGETS ${TARGET_LIB_NAME} DESTINATION lib)
 # Install lib headers when needed - currently in a shared folder with app
 #install(FILES ${LIB_HEADERS} DESTINATION include/${TARGET_LIB_NAME})
 
+option(SETUP_PYTHON_ENV "Whether to setup the Python environment. Python 3 with tkinter required." ON)
+if (SETUP_PYTHON_ENV)
+    set(PYTHON_EXECUTABLE "python.exe" CACHE PATH "Path to the Python executable ")
+    set(VENV_PATH "${CMAKE_BINARY_DIR}/.venv" CACHE PATH "Where to create the Python virtual environment")
+    execute_process(COMMAND ${PYTHON_EXECUTABLE} "-m" "venv" "${VENV_PATH}")
+    execute_process(COMMAND "${VENV_PATH}/Scripts/pip" "install" "pillow" "customtkinter" "CTkColorPicker" "numpy")
+endif()
+
+
 # Add a way to start the Python GUI directly from VS
 if ("${CMAKE_GENERATOR}" MATCHES "Visual Studio")
-    set(VENV_PATH "${CMAKE_CURRENT_SOURCE_DIR}/.venv" CACHE PATH "Path to the Python virtual environment")
     set_target_properties(${TARGET_LIB_NAME} PROPERTIES
-        VS_DEBUGGER_COMMAND "cmd.exe"
-        VS_DEBUGGER_COMMAND_ARGUMENTS "/c \"call ${VENV_PATH}\\Scripts\\activate.bat && python ${CMAKE_CURRENT_SOURCE_DIR}/python-gui/gui.py\""
-        VS_DEBUGGER_ENVIRONMENT "CHAOS_RAYTRACING_LIB_PATH=$<TARGET_FILE_DIR:${TARGET_LIB_NAME}>"
+        VS_DEBUGGER_COMMAND "${PYTHON_EXECUTABLE}"
+        VS_DEBUGGER_COMMAND_ARGUMENTS "${CMAKE_CURRENT_SOURCE_DIR}\\python-gui\\gui.py"
+        VS_DEBUGGER_ENVIRONMENT "CHAOS_RAYTRACING_LIB_PATH=$<TARGET_FILE_DIR:${TARGET_LIB_NAME}>\nVIRTUAL_ENV=${VENV_PATH}\nPYTHONPATH=${VENV_PATH}\\Lib\\site-packages;\"%PYTHONPATH%\""
     )
 endif()
 
