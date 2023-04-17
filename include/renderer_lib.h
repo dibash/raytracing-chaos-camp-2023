@@ -1,8 +1,9 @@
 #pragma once
+
 #include "utils.h"
-#include "scene_object.h"
-#include "camera.h"
+#include "scene.h"
+
 #include <vector>
 
-void renderImage(Color* pixels, const std::vector<Object>& scene, Camera cam = Camera({ 0,0,0 }));
+void renderImage(Color* pixels, const Scene& scene);
 std::vector<Object> generate_scene();

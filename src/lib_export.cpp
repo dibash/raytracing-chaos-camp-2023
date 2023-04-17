@@ -3,25 +3,28 @@
 #include "utils.h"
 #include "scene_object.h"
 #include "camera.h"
+#include "scene.h"
 
 #include <algorithm>
 
 ChaosRendererAPI void render(void* pixels, float t)
 {
-    std::vector<Object> scene = generate_scene();
-    Camera cam({ 0, 0, 0 });
-    renderImage((Color*)pixels, scene, cam);
+    Scene scene;
+    scene.objects = generate_scene();
+    scene.camera = Camera({ 0, 0, 0 });
+    renderImage((Color*)pixels, scene);
 }
 
 ChaosRendererAPI void renderCamera(void* pixels, float x, float y, float z, float fov, float pan, float tilt, float roll)
 {
-    std::vector<Object> scene = generate_scene();
-    Camera cam({ x, y, z });
-    cam.setFOV(fov);
-    cam.setPan(pan);
-    cam.setTilt(tilt);
-    cam.setRoll(roll);
-    renderImage((Color*)pixels, scene, cam);
+    Scene scene;
+    scene.objects = generate_scene();
+    scene.camera = Camera({ 0, 0, 0 });
+    scene.camera.setFOV(fov);
+    scene.camera.setPan(pan);
+    scene.camera.setTilt(tilt);
+    scene.camera.setRoll(roll);
+    renderImage((Color*)pixels, scene);
 }
 
 ChaosRendererAPI void render2(void* pixels, const float* vertices, const int* triangleIndices, int trianglesCount)
@@ -46,5 +49,7 @@ ChaosRendererAPI void render2(void* pixels, const float* vertices, const int* tr
     }
 
     Object obj(std::move(ob_vertices), std::move(ob_indices));
-    renderImage((Color*)pixels, {obj});
+    Scene scene;
+    scene.objects.push_back(std::move(obj));
+    renderImage((Color*)pixels, scene);
 }

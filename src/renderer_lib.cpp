@@ -3,6 +3,7 @@
 #include "utils.h"
 #include "scene_object.h"
 #include "camera.h"
+#include "scene.h"
 
 #include <vector>
 #include <cmath>
@@ -21,7 +22,7 @@ Color shade(Vector rayDirection, const IntersectionData &idata)
     return { val * 0.5f, val * 0.3f, val * 0.9f };
 }
 
-void renderImage(Color* pixels, const std::vector<Object>& scene, Camera cam)
+void renderImage(Color* pixels, const Scene& scene)
 {
     std::vector<int> height(HEIGHT);
     std::iota(height.begin(), height.end(), 0);
@@ -32,18 +33,11 @@ void renderImage(Color* pixels, const std::vector<Object>& scene, Camera cam)
         height.end(),
         [&](int y) {
             IntersectionData idata;
-            IntersectionData closest_idata;
             for (int x = 0; x < WIDTH; x++) {
-                Ray ray = cam.generateCameraRay(WIDTH, HEIGHT, x, y);
-                closest_idata.t = 1e30f;
-                for (size_t i = 0; i < scene.size(); i++) {
-                    bool intersection = scene[i].intersect(ray, idata);
-                    if (intersection && idata.t < closest_idata.t) {
-                        closest_idata = idata;
-                    }
-                }
-                if (closest_idata.t < 1e30f) {
-                    pixels[y * WIDTH + x] = shade(ray.dir, closest_idata);
+                Ray ray = scene.camera.generateCameraRay(WIDTH, HEIGHT, x, y);
+                const bool intersection = scene.intersect(ray, idata);
+                if (intersection) {
+                    pixels[y * WIDTH + x] = shade(ray.dir, idata);
                     //pixels[y * WIDTH + x] = { idata.u, idata.v, 0.1f };
                     //pixels[y * WIDTH + x] = { idata.normal.x, idata.normal.y, idata.normal.z };
                 }

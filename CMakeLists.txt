@@ -24,12 +24,14 @@ set(LIB_HEADERS
     include/matrix.h
     include/camera.h
     include/scene_object.h
+    include/scene.h
 )
 
 set(LIB_SOURCES
     src/lib_export.cpp
     src/renderer_lib.cpp
     src/scene_object.cpp
+    src/scene.cpp
 )
 
 add_library(${TARGET_LIB_NAME} SHARED "${LIB_SOURCES};${LIB_HEADERS}")
