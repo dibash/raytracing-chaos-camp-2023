@@ -10,7 +10,6 @@ ChaosRendererAPI void render(void* pixels, float t)
 {
     std::vector<Object> scene = generate_scene();
     Camera cam({ 0, 0, 0 });
-    cam.setFOV(t);
     renderImage((Color*)pixels, scene, cam);
 }
 
