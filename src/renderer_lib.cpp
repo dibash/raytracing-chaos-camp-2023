@@ -42,6 +42,8 @@ void renderImage(Color* pixels, const Scene& scene)
                     //pixels[y * WIDTH + x] = { idata.normal.x, idata.normal.y, idata.normal.z };
                 }
                 else {
+                    pixels[y * WIDTH + x] = scene.settings.background;
+                    /*
                     Vector absDir{ std::abs(ray.dir.x), std::abs(ray.dir.y), std::abs(ray.dir.z) };
                     real_t axis = std::max({ absDir.x, absDir.y, absDir.z });
                     pixels[y * WIDTH + x] = {
@@ -49,7 +51,6 @@ void renderImage(Color* pixels, const Scene& scene)
                         std::abs(absDir.y - axis) < EPSILON ? absDir.y : 0,
                         std::abs(absDir.z - axis) < EPSILON ? absDir.z : 0,
                     };
-                    /*
                     pixels[y * WIDTH + x] = {
                         std::abs(ray.dir.x),
                         std::abs(ray.dir.y),
