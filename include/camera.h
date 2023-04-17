@@ -77,7 +77,7 @@ public:
     /// <param name="x"> The horizontal pixel coordinate </param>
     /// <param name="y"> The vertical pixel coordinate </param>
     /// <returns> A ray with normalized direction </returns>
-    Ray generateCameraRay(size_t WIDTH, size_t HEIGHT, int x, int y)
+    Ray generateCameraRay(size_t WIDTH, size_t HEIGHT, int x, int y) const
     {
         const real_t aspect = real_t(HEIGHT) / real_t(WIDTH);
         const real_t scale = std::tanf(deg2rad(fov) * 0.5f);
