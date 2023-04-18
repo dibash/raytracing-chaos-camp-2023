@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import filedialog
 import customtkinter
 import numpy as np
 from PIL import Image, ImageTk
@@ -6,6 +7,7 @@ from PIL import Image, ImageTk
 import ctypes
 import distutils.ccompiler
 import os
+import sys
 import timeit
 
 from CTkColorPicker import AskColor
@@ -26,6 +28,7 @@ VIEWPORT_CHANNELS = 4
 dll = ctypes.WinDLL(RENDERER_LIB_FULL_PATH)
 dll.render.argtypes = [ctypes.POINTER(ctypes.c_float), ctypes.c_float]
 dll.renderCamera.argtypes = [ctypes.POINTER(ctypes.c_float)] + [ctypes.c_float] * 7
+dll.renderFile.argtypes = [ctypes.POINTER(ctypes.c_float), ctypes.c_char_p]
 
 
 class CodeTimer:
@@ -66,7 +69,7 @@ class App(customtkinter.CTk):
         # create sidebar frame with widgets
         self.sidebar_frame = customtkinter.CTkFrame(self, width=SIDEBAR_WIDTH, corner_radius=0)
         self.sidebar_frame.grid(row=0, column=1, sticky="nsew")
-        self.sidebar_frame.grid_rowconfigure(9, weight=1)
+        self.sidebar_frame.grid_rowconfigure(10, weight=1)
         self.logo_label = customtkinter.CTkLabel(self.sidebar_frame, text="Ray Tracing 2023", font=customtkinter.CTkFont(size=20, weight="bold"))
         self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
 
@@ -82,16 +85,25 @@ class App(customtkinter.CTk):
         self.sidebar_button_1 = customtkinter.CTkButton(self.sidebar_frame, text='Render', command=self.render_button_event)
         self.sidebar_button_1.grid(row=8, column=0, padx=20, pady=10)
 
-        with CodeTimer('Render'):
-            self.c_buffer = (ctypes.c_float * (VIEWPORT_WIDTH * VIEWPORT_HEIGHT * VIEWPORT_CHANNELS))()
-            dll.render(self.c_buffer, 90)
+        self.sidebar_button_2 = customtkinter.CTkButton(self.sidebar_frame, text='Load scene', command=self.load_scene_event)
+        self.sidebar_button_2.grid(row=9, column=0, padx=20, pady=10)
 
-        with CodeTimer('Pixel conversion'):
+        with CodeTimer('renderCamera'):
+            self.c_buffer = (ctypes.c_float * (VIEWPORT_WIDTH * VIEWPORT_HEIGHT * VIEWPORT_CHANNELS))()
+            x = self.sliders['x'].slider.get()
+            y = self.sliders['y'].slider.get()
+            z = self.sliders['z'].slider.get()
+            fov = self.sliders['fov'].slider.get()
+            pan = self.sliders['pan'].slider.get()
+            tilt = self.sliders['tilt'].slider.get()
+            roll = self.sliders['roll'].slider.get()
+
+            dll.renderCamera(self.c_buffer, x, y, z, fov, pan, tilt, roll)
+
             np_array = np.frombuffer(self.c_buffer, dtype=np.float32)
             np_array = np_array.reshape((VIEWPORT_HEIGHT, VIEWPORT_WIDTH, VIEWPORT_CHANNELS))
             self.pixels = Image.fromarray((np_array * 255.999).astype(np.uint8))
 
-        with CodeTimer('Image creation'):
             self.img = ImageTk.PhotoImage(self.pixels)
             self.canvas.create_image((VIEWPORT_WIDTH/2, VIEWPORT_HEIGHT/2), image=self.img, state="normal")
 
@@ -116,23 +128,40 @@ class App(customtkinter.CTk):
 
 
     def render_button_event(self):
-        #with CodeTimer('Render'):
-            x = self.sliders['x'].slider.get()
-            y = self.sliders['y'].slider.get()
-            z = self.sliders['z'].slider.get()
-            fov = self.sliders['fov'].slider.get()
-            pan = self.sliders['pan'].slider.get()
-            tilt = self.sliders['tilt'].slider.get()
-            roll = self.sliders['roll'].slider.get()
+        x = self.sliders['x'].slider.get()
+        y = self.sliders['y'].slider.get()
+        z = self.sliders['z'].slider.get()
+        fov = self.sliders['fov'].slider.get()
+        pan = self.sliders['pan'].slider.get()
+        tilt = self.sliders['tilt'].slider.get()
+        roll = self.sliders['roll'].slider.get()
+
+        with CodeTimer('renderCamera'):
             dll.renderCamera(self.c_buffer, x, y, z, fov, pan, tilt, roll)
 
-        #with CodeTimer('Pixel conversion'):
-            np_array = np.frombuffer(self.c_buffer, dtype=np.float32)
-            np_array = np_array.reshape((VIEWPORT_HEIGHT, VIEWPORT_WIDTH, VIEWPORT_CHANNELS))
-            self.pixels = Image.fromarray((np_array * 255).astype(np.uint8))
+        np_array = np.frombuffer(self.c_buffer, dtype=np.float32)
+        np_array = np_array.reshape((VIEWPORT_HEIGHT, VIEWPORT_WIDTH, VIEWPORT_CHANNELS))
+        self.pixels = Image.fromarray((np_array * 255).astype(np.uint8))
 
-        #with CodeTimer('Image copy'):
-            self.img.paste(self.pixels)
+        self.img.paste(self.pixels)
+
+    def load_scene_event(self):
+        filetypes = (
+            ('CRTScene files', '*.crtscene'),
+            ('All files', '*.*'),
+        )
+        fileName = filedialog.askopenfilename(
+            title='Choose a scene to render',
+            filetypes=filetypes
+        )
+
+        with CodeTimer(f'Render {fileName}'):
+            dll.renderFile(self.c_buffer, ctypes.c_char_p(bytes(fileName, sys.getfilesystemencoding())))
+
+        np_array = np.frombuffer(self.c_buffer, dtype=np.float32)
+        np_array = np_array.reshape((VIEWPORT_HEIGHT, VIEWPORT_WIDTH, VIEWPORT_CHANNELS))
+        self.pixels = Image.fromarray((np_array * 255).astype(np.uint8))
+        self.img.paste(self.pixels)
 
     def set_color_button_event(self):
         pick_color = AskColor() # Open the Color Picker
