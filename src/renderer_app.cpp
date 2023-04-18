@@ -6,11 +6,11 @@ using std::unique_ptr;
 #include "lib_export.h"
 #include "gui_win.hpp"
 
-const size_t WIDTH = 1920;
-const size_t HEIGHT = 1080;
 
 void writePixels(Window& window, Color* pixels)
 {
+    const int WIDTH = window.getWidth();
+    const int HEIGHT = window.getHeight();
     PixelBuffer img(WIDTH, HEIGHT);
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
@@ -26,11 +26,12 @@ void writePixels(Window& window, Color* pixels)
 
 int main(int argc, char* argv[])
 {
-    unique_ptr<Color> pixelData{ new Color[WIDTH * HEIGHT] };
-    Color* pixels = pixelData.get();
-
     if (argc == 2) {
+        int WIDTH, HEIGHT;
         printf("Scene file selected: %s\n", argv[1]);
+        getSizeFromFile(argv[1], &WIDTH, &HEIGHT);
+        unique_ptr<Color> pixelData{ new Color[WIDTH * HEIGHT] };
+        Color* pixels = pixelData.get();
         printf("Rendering...\n");
         renderFile(pixels, argv[1]);
         Window window(WIDTH, HEIGHT, "Raytracing 2023");
@@ -38,6 +39,10 @@ int main(int argc, char* argv[])
         window.run();
     }
     else {
+        const int WIDTH = 1920;
+        const int HEIGHT = 1080;
+        unique_ptr<Color> pixelData{ new Color[WIDTH * HEIGHT] };
+        Color* pixels = pixelData.get();
         Window window(WIDTH, HEIGHT, "Raytracing 2023");
         for (float t = 0.1f; t > 0; t -= 0.1f) {
             render(pixels, t);

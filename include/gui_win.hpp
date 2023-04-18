@@ -125,6 +125,16 @@ public:
         PostMessage(hwnd, WM_UPDATE_WINDOW_BUFFER, 0, 0);
     }
 
+    int getWidth() const
+    {
+        return width;
+    }
+
+    int getHeight() const
+    {
+        return height;
+    }
+
 private:
 
     void showBuffer()
