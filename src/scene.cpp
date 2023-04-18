@@ -105,13 +105,29 @@ Object loadObject(const rapidjson::Value& objectVal)
     return obj;
 }
 
-void Scene::load(const std::string& fileName)
+Camera loadCamera(const rapidjson::Value& cameraVal)
 {
     using namespace rapidjson;
+    Camera camera;
 
-    Document doc = getJsonDocument(fileName);
+    if (!cameraVal.IsNull() && cameraVal.IsObject()) {
+        const Value& matrixVal = cameraVal.FindMember("matrix")->value;
+        if (!matrixVal.IsNull() && matrixVal.IsArray()) {
+            // [TODO] Support setting matrix for camera.
+        }
+        const Value& positionVal = cameraVal.FindMember("position")->value;
+        if (!positionVal.IsNull() && positionVal.IsArray()) {
+            camera.position = loadVector(positionVal.GetArray());
+        }
+    }
+    return camera;
+}
 
-    const Value& settingsVal = doc.FindMember("settings")->value;
+SceneSettings loadSettings(const rapidjson::Value& settingsVal)
+{
+    using namespace rapidjson;
+    SceneSettings settings;
+
     if (!settingsVal.IsNull() && settingsVal.IsObject()) {
         const Value& bgColorVal = settingsVal.FindMember("background_color")->value;
         if (!bgColorVal.IsNull() && bgColorVal.IsArray()) {
@@ -127,18 +143,19 @@ void Scene::load(const std::string& fileName)
             }
         }
     }
+    return settings;
+}
+
+void Scene::load(const std::string& fileName)
+{
+    using namespace rapidjson;
+    Document doc = getJsonDocument(fileName);
+
+    const Value& settingsVal = doc.FindMember("settings")->value;
+    settings = loadSettings(settingsVal);
 
     const Value& cameraVal = doc.FindMember("camera")->value;
-    if (!cameraVal.IsNull() && cameraVal.IsObject()) {
-        const Value& matrixVal = cameraVal.FindMember("matrix")->value;
-        if (!matrixVal.IsNull() && matrixVal.IsArray()) {
-            // [TODO] Support setting matrix for camera.
-        }
-        const Value& positionVal = cameraVal.FindMember("position")->value;
-        if (!positionVal.IsNull() && positionVal.IsArray()) {
-            camera.position = loadVector(positionVal.GetArray());
-        }
-    }
+    camera = loadCamera(cameraVal);
 
     const Value& objectsVal = doc.FindMember("objects")->value;
     if (!objectsVal.IsNull() && objectsVal.IsArray()) {
@@ -146,5 +163,14 @@ void Scene::load(const std::string& fileName)
             addObject(loadObject(v));
         }
     }
+}
 
+void Scene::getSizeFromFile(const std::string& fileName, int& width, int& height)
+{
+    using namespace rapidjson;
+    Document doc = getJsonDocument(fileName);
+    const Value& settingsVal = doc.FindMember("settings")->value;
+    SceneSettings settings = loadSettings(settingsVal);
+    width = settings.width;
+    height = settings.height;
 }

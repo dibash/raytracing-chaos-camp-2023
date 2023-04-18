@@ -32,4 +32,6 @@ public:
 
     // Intersectable
     bool intersect(Ray ray, IntersectionData& idata) const override;
+
+    static void getSizeFromFile(const std::string& fileName, int& width, int& height);
 };

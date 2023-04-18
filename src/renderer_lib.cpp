@@ -11,10 +11,6 @@
 #include <execution>
 
 
-const size_t WIDTH = 1920;
-const size_t HEIGHT = 1080;
-
-
 Color shade(Vector rayDirection, const IntersectionData &idata)
 {
     const real_t theta = dot(-rayDirection, idata.normal);
@@ -24,6 +20,8 @@ Color shade(Vector rayDirection, const IntersectionData &idata)
 
 void renderImage(Color* pixels, const Scene& scene)
 {
+    const size_t WIDTH = scene.settings.width;
+    const size_t HEIGHT = scene.settings.height;
     std::vector<int> height(HEIGHT);
     std::iota(height.begin(), height.end(), 0);
 

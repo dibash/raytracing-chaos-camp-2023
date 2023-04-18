@@ -56,3 +56,8 @@ ChaosRendererAPI void render2(void* pixels, const float* vertices, const int* tr
     scene.objects.push_back(std::move(obj));
     renderImage((Color*)pixels, scene);
 }
+
+void getSizeFromFile(const char* fileName, int* width, int* height)
+{
+    Scene::getSizeFromFile(fileName, *width, *height);
+}
