@@ -73,6 +73,15 @@ Vector loadVector(const rapidjson::Value::ConstArray& arr)
     return v;
 }
 
+Matrix loadMatrix(const rapidjson::Value::ConstArray& arr)
+{
+    assert(arr.Size() == 9);
+    Vector r1 = { arr[0].GetFloat(), arr[1].GetFloat(), arr[2].GetFloat() };
+    Vector r2 = { arr[3].GetFloat(), arr[4].GetFloat(), arr[5].GetFloat() };
+    Vector r3 = { arr[6].GetFloat(), arr[7].GetFloat(), arr[8].GetFloat() };
+    return { r1, r2, r3 };
+}
+
 Object loadObject(const rapidjson::Value& objectVal)
 {
     using namespace rapidjson;
@@ -113,7 +122,8 @@ Camera loadCamera(const rapidjson::Value& cameraVal)
     if (!cameraVal.IsNull() && cameraVal.IsObject()) {
         const Value& matrixVal = cameraVal.FindMember("matrix")->value;
         if (!matrixVal.IsNull() && matrixVal.IsArray()) {
-            // [TODO] Support setting matrix for camera.
+            Matrix mat = loadMatrix(matrixVal.GetArray());
+            camera.setOriginalMatrix(mat);
         }
         const Value& positionVal = cameraVal.FindMember("position")->value;
         if (!positionVal.IsNull() && positionVal.IsArray()) {

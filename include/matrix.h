@@ -13,10 +13,11 @@ struct Matrix {
         real_t m[3][3];
     };
 
-    Matrix()
-        : r1({ 1,0,0 })
-        , r2({ 0,1,0 })
-        , r3({ 0,0,1 })
+    Matrix(
+        const Vector& r1 = { 1,0,0 },
+        const Vector& r2 = { 0,1,0 },
+        const Vector& r3 = { 0,0,1 }
+    ) : r1(r1), r2(r2), r3(r3)
     {}
 
     /// <summary>

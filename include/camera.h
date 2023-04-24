@@ -3,6 +3,9 @@
 #include <algorithm>
 
 class Camera {
+
+    Matrix originalMatrix;
+
     struct {
         real_t pan;
         real_t tilt;
@@ -14,11 +17,17 @@ class Camera {
 public:
     Vector position;
 
-    Camera(Vector pos = { 0, 0, 0 })
-        : position(pos)
+    Camera(Vector pos = { 0, 0, 0 }, const Matrix& mat = Matrix::Identity())
+        : originalMatrix(mat)
         , transforms({ 0,0,0 })
         , fov(90)
+        , position(pos)
     {}
+
+    void setOriginalMatrix(const Matrix& mat)
+    {
+        originalMatrix = mat;
+    }
 
     /// <summary>
     /// Set the pan angle of the camera.
@@ -62,7 +71,7 @@ public:
     /// <returns> Rotation matrix </returns>
     Matrix getMatrix() const
     {
-        Matrix m = Matrix::Identity();
+        Matrix m = originalMatrix.transposed();
         m = Matrix::Rotation(deg2rad(transforms.roll), { 0, 0, 1 }) * m;
         m = Matrix::Rotation(deg2rad(transforms.tilt), { 1, 0, 0 }) * m;
         m = Matrix::Rotation(deg2rad(transforms.pan), { 0, 1, 0 }) * m;
