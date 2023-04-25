@@ -199,6 +199,6 @@ void Scene::getSizeFromFile(const std::string& fileName, int& width, int& height
     }
     const Value& settingsVal = doc.FindMember("settings")->value;
     SceneSettings settings = loadSettings(settingsVal);
-    width = settings.width;
-    height = settings.height;
+    width = (int)settings.width;
+    height = (int)settings.height;
 }
