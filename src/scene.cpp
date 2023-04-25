@@ -99,7 +99,7 @@ Object loadObject(const rapidjson::Value& objectVal)
     if (!verticesVal.IsNull() && verticesVal.IsArray()) {
         verts.reserve(verticesVal.Size());
         for (SizeType i = 0; i < verticesVal.Size() / 3; ++i) {
-            assert(verticesVal[i * 3 + 0].IsFloat() && verticesVal[i * 3 + 1].IsFloat() && verticesVal[i * 3 + 2].IsFloat());
+            assert(verticesVal[i * 3 + 0].IsNumber() && verticesVal[i * 3 + 1].IsNumber() && verticesVal[i * 3 + 2].IsNumber());
             verts.push_back({
                 verticesVal[i * 3 + 0].GetFloat(),
                 verticesVal[i * 3 + 1].GetFloat(),
