@@ -33,7 +33,12 @@ rapidjson::Document getJsonDocument(const std::string& fileName)
     using namespace rapidjson;
 
     std::ifstream ifs(fileName);
-    assert(ifs.is_open());
+    if (!ifs.is_open()) {
+        std::cerr << "File doesn't exist or is not readable\n";
+        Document doc;
+        doc.Parse("");
+        return doc;
+    }
 
     IStreamWrapper isw(ifs);
     Document doc;
@@ -161,6 +166,13 @@ void Scene::load(const std::string& fileName)
     using namespace rapidjson;
     Document doc = getJsonDocument(fileName);
 
+    if (doc.HasParseError()) {
+        if (doc.GetParseError() == kParseErrorDocumentEmpty) {
+            std::cerr << "Error: Document is empty\n";
+            return;
+        }
+    }
+
     const Value& settingsVal = doc.FindMember("settings")->value;
     settings = loadSettings(settingsVal);
 
@@ -179,6 +191,12 @@ void Scene::getSizeFromFile(const std::string& fileName, int& width, int& height
 {
     using namespace rapidjson;
     Document doc = getJsonDocument(fileName);
+    if (doc.HasParseError()) {
+        if (doc.GetParseError() == kParseErrorDocumentEmpty) {
+            std::cerr << "Error: Document is empty\n";
+            return;
+        }
+    }
     const Value& settingsVal = doc.FindMember("settings")->value;
     SceneSettings settings = loadSettings(settingsVal);
     width = settings.width;

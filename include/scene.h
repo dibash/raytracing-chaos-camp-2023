@@ -24,8 +24,16 @@ public:
     Scene() {}
     Scene(const SceneSettings& settings)
         : settings(settings)
+        , camera()
+        , objects()
     {}
-    Scene(const std::string& fileName) { load(fileName); }
+    Scene(const std::string& fileName)
+        : settings()
+        , camera()
+        , objects()
+    {
+        load(fileName);
+    }
 
     void addObject(const Object& object);
     void load(const std::string& fileName);
