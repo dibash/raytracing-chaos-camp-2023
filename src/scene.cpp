@@ -15,14 +15,15 @@ void Scene::addObject(const Object& object)
     objects.push_back(object);
 }
 
-bool Scene::intersect(Ray ray, IntersectionData& idata) const
+bool Scene::intersect(Ray ray, IntersectionData& idata, bool backface, bool any) const
 {
     IntersectionData temp_idata;
     idata.t = 1e30f;
-    for (size_t i = 0; i < objects.size(); i++) {
-        bool intersection = objects[i].intersect(ray, temp_idata);
+    for (const Object& o : objects) {
+        bool intersection = o.intersect(ray, temp_idata, backface, any);
         if (intersection && temp_idata.t < idata.t) {
             idata = temp_idata;
+            if (any) return true;
         }
     }
     return idata.t < 1e30f;

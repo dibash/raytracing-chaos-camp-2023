@@ -39,7 +39,7 @@ public:
     void load(const std::string& fileName);
 
     // Intersectable
-    bool intersect(Ray ray, IntersectionData& idata) const override;
+    bool intersect(Ray ray, IntersectionData& idata, bool backface = false, bool any = false) const override;
 
     static void getSizeFromFile(const std::string& fileName, int& width, int& height);
 };

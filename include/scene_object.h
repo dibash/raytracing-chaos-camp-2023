@@ -22,5 +22,5 @@ public:
     {}
 
     // Intersectable
-    bool intersect(Ray ray, IntersectionData& idata) const override;
+    bool intersect(Ray ray, IntersectionData& idata, bool backface = false, bool any = false) const override;
 };

@@ -2,7 +2,7 @@
 #include "utils.h"
 #include "renderer_lib.h"
 
-bool triangleIntersection(Ray ray, const std::vector<Vector>& vertices, int v1, int v2, int v3, IntersectionData& idata)
+bool triangleIntersection(Ray ray, const std::vector<Vector>& vertices, int v1, int v2, int v3, IntersectionData& idata, bool backface = false)
 {
     real_t& t = idata.t;
     real_t& u = idata.u;
@@ -16,7 +16,7 @@ bool triangleIntersection(Ray ray, const std::vector<Vector>& vertices, int v1, 
     real_t d = dot(e1, h);
 
     // Ray is parallel to the triangle
-    if (std::abs(d) < EPSILON)
+    if ((backface ? std::abs(d) : d) < EPSILON)
         return false;
 
     // If d < 0 => we are hitting the back side of the triangle plane
@@ -64,7 +64,7 @@ bool triangleIntersection(Ray ray, const std::vector<Vector>& vertices, int v1, 
     return true;
 }
 
-bool Object::intersect(Ray ray, IntersectionData& idata) const
+bool Object::intersect(Ray ray, IntersectionData& idata, bool backface, bool any) const
 {
     size_t num_triangles = triangles.size() / 3;
     IntersectionData temp_idata{};
@@ -77,10 +77,12 @@ bool Object::intersect(Ray ray, IntersectionData& idata) const
             triangles[i*3+0],
             triangles[i*3+1],
             triangles[i*3+2],
-            temp_idata
+            temp_idata,
+            backface
         );
         if (hit && temp_idata.t < idata.t) {
             idata = temp_idata;
+            if (any) return true;
         }
     }
     return idata.t < 1e30f;
