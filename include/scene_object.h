@@ -24,3 +24,11 @@ public:
     // Intersectable
     bool intersect(Ray ray, IntersectionData& idata, bool backface = false, bool any = false) const override;
 };
+
+struct Light : Intersectable {
+    Vector position{};
+    int intensity = 1000;
+
+    // Intersectable
+    bool intersect(Ray ray, IntersectionData& idata, bool backface = false, bool any = false) const override;
+};

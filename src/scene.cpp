@@ -19,6 +19,13 @@ bool Scene::intersect(Ray ray, IntersectionData& idata, bool backface, bool any)
 {
     IntersectionData temp_idata;
     idata.t = 1e30f;
+    for (const Light& l : lights) {
+        bool intersection = l.intersect(ray, temp_idata, backface, any);
+        if (intersection && temp_idata.t < idata.t) {
+            idata = temp_idata;
+            if (any) return true;
+        }
+    }
     for (const Object& o : objects) {
         bool intersection = o.intersect(ray, temp_idata, backface, any);
         if (intersection && temp_idata.t < idata.t) {
@@ -86,6 +93,25 @@ Matrix loadMatrix(const rapidjson::Value::ConstArray& arr)
     Vector r2 = { arr[3].GetFloat(), arr[4].GetFloat(), arr[5].GetFloat() };
     Vector r3 = { arr[6].GetFloat(), arr[7].GetFloat(), arr[8].GetFloat() };
     return { r1, r2, r3 };
+}
+
+Light loadLight(const rapidjson::Value& lightVal)
+{
+    using namespace rapidjson;
+
+    Light light;
+
+    if (!lightVal.IsNull() && lightVal.IsObject()) {
+        const Value& intensityVal = lightVal.FindMember("intensity")->value;
+        if (!intensityVal.IsNull() && intensityVal.IsNumber()) {
+            light.intensity = intensityVal.GetInt();
+        }
+        const Value& positionVal = lightVal.FindMember("position")->value;
+        if (!positionVal.IsNull() && positionVal.IsArray()) {
+            light.position = loadVector(positionVal.GetArray());
+        }
+    }
+    return light;
 }
 
 Object loadObject(const rapidjson::Value& objectVal)
@@ -179,6 +205,13 @@ void Scene::load(const std::string& fileName)
 
     const Value& cameraVal = doc.FindMember("camera")->value;
     camera = loadCamera(cameraVal);
+
+    const Value& lightsVal = doc.FindMember("lights")->value;
+    if (!lightsVal.IsNull() && lightsVal.IsArray()) {
+        for (const Value& v : lightsVal.GetArray()) {
+            lights.push_back(loadLight(v));
+        }
+    }
 
     const Value& objectsVal = doc.FindMember("objects")->value;
     if (!objectsVal.IsNull() && objectsVal.IsArray()) {

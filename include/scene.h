@@ -19,6 +19,7 @@ public:
     SceneSettings settings;
     Camera camera;
     std::vector<Object> objects;
+    std::vector<Light> lights;
 
 public:
     Scene() {}
