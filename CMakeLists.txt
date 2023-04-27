@@ -79,6 +79,7 @@ set(APP_SOURCES
 )
 
 add_executable(renderer_app "${APP_SOURCES};${APP_HEADERS}")
+target_compile_features(renderer_app PRIVATE cxx_std_17)
 target_link_libraries(renderer_app PRIVATE ${TARGET_LIB_NAME})
 target_include_directories(renderer_app PUBLIC include)
 

@@ -102,6 +102,7 @@ class App(customtkinter.CTk):
 
             np_array = np.frombuffer(self.c_buffer, dtype=np.float32)
             np_array = np_array.reshape((VIEWPORT_HEIGHT, VIEWPORT_WIDTH, VIEWPORT_CHANNELS))
+            np_array = np.clip(np_array, 0, 1)
             self.pixels = Image.fromarray((np_array * 255.999).astype(np.uint8))
 
             self.img = ImageTk.PhotoImage(self.pixels)
@@ -141,6 +142,7 @@ class App(customtkinter.CTk):
 
         np_array = np.frombuffer(self.c_buffer, dtype=np.float32)
         np_array = np_array.reshape((VIEWPORT_HEIGHT, VIEWPORT_WIDTH, VIEWPORT_CHANNELS))
+        np_array = np.clip(np_array, 0, 1)
         self.pixels = Image.fromarray((np_array * 255).astype(np.uint8))
 
         self.img.paste(self.pixels)
@@ -160,6 +162,7 @@ class App(customtkinter.CTk):
 
         np_array = np.frombuffer(self.c_buffer, dtype=np.float32)
         np_array = np_array.reshape((VIEWPORT_HEIGHT, VIEWPORT_WIDTH, VIEWPORT_CHANNELS))
+        np_array = np.clip(np_array, 0, 1)
         self.pixels = Image.fromarray((np_array * 255).astype(np.uint8))
         self.img.paste(self.pixels)
 
