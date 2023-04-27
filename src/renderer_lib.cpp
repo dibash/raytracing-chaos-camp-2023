@@ -23,6 +23,12 @@ Color shade(const Scene& scene, const Ray& ray, const IntersectionData &idata)
     IntersectionData idata2;
     Color finalColor = { 0,0,0,1 };
 
+    if (scene.lights.empty()) {
+        const real_t theta = dot(-ray.dir, idata.normal);
+        const real_t val = theta / 3 * 2 + 1.0f / 3;
+        return { val * 0.5f, val * 0.3f, val * 0.9f };
+    }
+
     for (const Light& l : scene.lights) {
         const Vector lightDir = l.position - ip;
         const Ray shadowRay = { ip, normalized(lightDir) };
