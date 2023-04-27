@@ -14,7 +14,20 @@ struct Color {
     real_t g = 0;
     real_t b = 0;
     real_t a = 1;
+
+    Color& operator+=(const Color& rhs)
+    {
+        r += rhs.r;
+        g += rhs.g;
+        b += rhs.b;
+        return *this;
+    }
 };
+
+inline Color operator*(real_t s, Color c)
+{
+    return { c.r * s, c.g * s, c.b * s, c.a };
+}
 
 struct IntersectionData {
     real_t t = 0;

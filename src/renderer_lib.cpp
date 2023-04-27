@@ -11,11 +11,31 @@
 #include <execution>
 
 
-Color shade(Vector rayDirection, const IntersectionData &idata)
+Color shade(const Scene& scene, const Ray& ray, const IntersectionData &idata)
 {
-    const real_t theta = dot(-rayDirection, idata.normal);
-    const real_t val = theta / 3 * 2 + 1.0f / 3;
-    return { val * 0.5f, val * 0.3f, val * 0.9f };
+    if (idata.u == -1 && idata.v == -1) {
+        // "Temporary" workaround for rendering lights
+        return { 1, 1, .9f, 1 };
+    }
+    const Color albedo = { 0.5f, 0.2f, 0.9f };
+    const real_t shadowBias = 0.0001f;
+    const Vector ip = ray.origin + ray.dir * idata.t + idata.normal * shadowBias;
+    IntersectionData idata2;
+    Color finalColor = { 0,0,0,1 };
+
+    for (const Light& l : scene.lights) {
+        const Vector lightDir = l.position - ip;
+        const Ray shadowRay = { ip, normalized(lightDir) };
+        bool shadow = scene.intersect(shadowRay, idata2, true, true);
+        if (!shadow) {
+            const real_t cosLaw = std::max(.0f, dot(shadowRay.dir, idata.normal));
+            const real_t rSqr = lightDir.lengthSqr();
+            const real_t area = 4 * PI * rSqr;
+            const Color contribution = (l.intensity / area * cosLaw) * albedo;
+            finalColor += contribution;
+        }
+    }
+    return finalColor;
 }
 
 void renderImage(Color* pixels, const Scene& scene)
@@ -35,7 +55,7 @@ void renderImage(Color* pixels, const Scene& scene)
                 Ray ray = scene.camera.generateCameraRay(WIDTH, HEIGHT, x, y);
                 const bool intersection = scene.intersect(ray, idata);
                 if (intersection) {
-                    pixels[y * WIDTH + x] = shade(ray.dir, idata);
+                    pixels[y * WIDTH + x] = shade(scene, ray, idata);
                     //pixels[y * WIDTH + x] = { idata.u, idata.v, 0.1f };
                     //pixels[y * WIDTH + x] = { idata.normal.x, idata.normal.y, idata.normal.z };
                 }

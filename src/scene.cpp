@@ -19,13 +19,17 @@ bool Scene::intersect(Ray ray, IntersectionData& idata, bool backface, bool any)
 {
     IntersectionData temp_idata;
     idata.t = 1e30f;
-    for (const Light& l : lights) {
-        bool intersection = l.intersect(ray, temp_idata, backface, any);
-        if (intersection && temp_idata.t < idata.t) {
-            idata = temp_idata;
-            if (any) return true;
+    if (!any) { // "Temporary" workaround for rendering lights
+        for (const Light& l : lights) {
+            bool intersection = l.intersect(ray, temp_idata, backface, any);
+            if (intersection && temp_idata.t < idata.t) {
+                idata = temp_idata;
+                idata.u = -1;
+                idata.v = -1;
+            }
         }
     }
+
     for (const Object& o : objects) {
         bool intersection = o.intersect(ray, temp_idata, backface, any);
         if (intersection && temp_idata.t < idata.t) {
