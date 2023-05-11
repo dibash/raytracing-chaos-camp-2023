@@ -83,6 +83,7 @@ bool Object::intersect(Ray ray, IntersectionData& idata, bool backface, bool any
         );
         if (hit && temp_idata.t < idata.t) {
             idata = temp_idata;
+            idata.object = this;
             if (any) return true;
         }
     }

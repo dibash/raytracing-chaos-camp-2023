@@ -25,6 +25,7 @@ set(LIB_HEADERS
     include/camera.h
     include/scene_object.h
     include/scene.h
+    include/material.h
 )
 
 set(LIB_SOURCES
@@ -32,6 +33,7 @@ set(LIB_SOURCES
     src/renderer_lib.cpp
     src/scene_object.cpp
     src/scene.cpp
+    src/material.cpp
 )
 
 add_library(${TARGET_LIB_NAME} SHARED "${LIB_SOURCES};${LIB_HEADERS}")

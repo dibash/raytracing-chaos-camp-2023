@@ -9,6 +9,8 @@ const real_t PI = 3.14159265359f;
 #include "vector.h"
 #include "matrix.h"
 
+class Object;
+
 struct Color {
     real_t r = 0;
     real_t g = 0;
@@ -34,6 +36,7 @@ struct IntersectionData {
     real_t u = 0;
     real_t v = 0;
     Vector normal{};
+    const Object* object = nullptr;
 };
 
 struct Ray {

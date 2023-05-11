@@ -150,6 +150,49 @@ Object loadObject(const rapidjson::Value& objectVal)
     return obj;
 }
 
+Material* loadMaterial(const rapidjson::Value& materialVal)
+{
+    using namespace rapidjson;
+
+    Material* material = nullptr;
+
+    if (!materialVal.IsNull() && materialVal.IsObject()) {
+        const Value& typeVal = materialVal.FindMember("type")->value;
+        if (!typeVal.IsNull() && typeVal.IsString()) {
+            std::string typeStr = typeVal.GetString();
+            if (typeStr == "diffuse") {
+                DiffuseMaterial* diffuseMaterial = new DiffuseMaterial;
+                material = diffuseMaterial;
+                const Value& albedoVal = materialVal.FindMember("albedo")->value;
+                if (!albedoVal.IsNull() && albedoVal.IsArray()) {
+                    diffuseMaterial->albedo = loadColor(albedoVal.GetArray());
+                }
+                const Value& smoothShadingVal = materialVal.FindMember("smooth_shading")->value;
+                if (!smoothShadingVal.IsNull() && smoothShadingVal.IsBool()) {
+                    diffuseMaterial->smooth_shading = smoothShadingVal.GetBool();
+                }
+            }
+            else if (typeStr == "reflective") {
+                ReflectiveMaterial* reflectiveMaterial = new ReflectiveMaterial;
+                material = reflectiveMaterial;
+                const Value& albedoVal = materialVal.FindMember("albedo")->value;
+                if (!albedoVal.IsNull() && albedoVal.IsArray()) {
+                    reflectiveMaterial->albedo = loadColor(albedoVal.GetArray());
+                }
+                const Value& smoothShadingVal = materialVal.FindMember("smooth_shading")->value;
+                if (!smoothShadingVal.IsNull() && smoothShadingVal.IsBool()) {
+                    reflectiveMaterial->smooth_shading = smoothShadingVal.GetBool();
+                }
+            }
+            else {
+                std::cerr << "Unknown material type: " << typeStr << '\n';
+                return nullptr;
+            }
+        }
+    }
+    return material;
+}
+
 Camera loadCamera(const rapidjson::Value& cameraVal)
 {
     using namespace rapidjson;
@@ -217,10 +260,27 @@ void Scene::load(const std::string& fileName)
         }
     }
 
+    const Value& materialsVal = doc.FindMember("materials")->value;
+    if (!materialsVal.IsNull() && materialsVal.IsArray()) {
+        for (const Value& v : materialsVal.GetArray()) {
+            Material* mat = loadMaterial(v);
+            if (mat) materials.push_back(mat);
+        }
+    }
+
     const Value& objectsVal = doc.FindMember("objects")->value;
     if (!objectsVal.IsNull() && objectsVal.IsArray()) {
         for (const Value& v : objectsVal.GetArray()) {
-            addObject(loadObject(v));
+            Object o = loadObject(v);
+            // TODO: fix this ugly
+            int materialIndex = -1;
+            const Value& materialIndexVal = v.FindMember("material_index")->value;
+            if (!materialIndexVal.IsNull() && materialIndexVal.IsUint()) {
+                materialIndex = materialIndexVal.GetUint();
+            }
+            if (materialIndex >= 0 && materialIndex < materials.size())
+                o.setMaterial(materials[materialIndex]);
+            addObject(o);
         }
     }
 }

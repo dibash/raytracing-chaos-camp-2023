@@ -19,19 +19,15 @@ public:
     SceneSettings settings;
     Camera camera;
     std::vector<Object> objects;
+    std::vector<Material*> materials;
     std::vector<Light> lights;
 
 public:
     Scene() {}
     Scene(const SceneSettings& settings)
         : settings(settings)
-        , camera()
-        , objects()
     {}
     Scene(const std::string& fileName)
-        : settings()
-        , camera()
-        , objects()
     {
         load(fileName);
     }
