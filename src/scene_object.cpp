@@ -2,7 +2,7 @@
 #include "utils.h"
 #include "renderer_lib.h"
 
-bool triangleIntersection(Ray ray, const std::vector<Vector>& vertices, int v1, int v2, int v3, IntersectionData& idata, bool backface = false)
+bool triangleIntersection(Ray ray, const std::vector<Vector>& vertices, int v1, int v2, int v3, IntersectionData& idata, bool backface = false, real_t max_t = 1e30f)
 {
     real_t& t = idata.t;
     real_t& u = idata.u;
@@ -55,7 +55,7 @@ bool triangleIntersection(Ray ray, const std::vector<Vector>& vertices, int v1, 
     t = f * dot(e2, q);
 
     // If t < 0, the intersection is in the negative ray direction
-    if (t < 0) {
+    if (t < 0 || t > max_t) {
         return false;
     }
 
@@ -64,12 +64,12 @@ bool triangleIntersection(Ray ray, const std::vector<Vector>& vertices, int v1, 
     return true;
 }
 
-bool Object::intersect(Ray ray, IntersectionData& idata, bool backface, bool any) const
+bool Object::intersect(Ray ray, IntersectionData& idata, bool backface, bool any, real_t max_t) const
 {
     size_t num_triangles = triangles.size() / 3;
     IntersectionData temp_idata{};
 
-    idata.t = 1e30f;
+    idata.t = max_t;
     for (size_t i = 0; i < num_triangles; i++) {
         const bool hit = triangleIntersection(
             ray,
@@ -78,14 +78,15 @@ bool Object::intersect(Ray ray, IntersectionData& idata, bool backface, bool any
             triangles[i*3+1],
             triangles[i*3+2],
             temp_idata,
-            backface
+            backface,
+            max_t
         );
         if (hit && temp_idata.t < idata.t) {
             idata = temp_idata;
             if (any) return true;
         }
     }
-    return idata.t < 1e30f;
+    return idata.t < max_t;
 }
 
 bool solveQuadratic(const real_t& a, const real_t& b, const real_t& c, real_t& x0, real_t& x1)
@@ -105,7 +106,7 @@ bool solveQuadratic(const real_t& a, const real_t& b, const real_t& c, real_t& x
     return true;
 }
 
-bool Light::intersect(Ray ray, IntersectionData& idata, bool backface, bool any) const
+bool Light::intersect(Ray ray, IntersectionData& idata, bool backface, bool any, real_t max_t) const
 {
     // Calculate the sphere radius based on the intensity value
     real_t radius = intensity / 1000.0f;

@@ -43,7 +43,7 @@ struct Ray {
 
 class Intersectable {
 public:
-    virtual bool intersect(Ray ray, IntersectionData& idata, bool backface = false, bool any = false) const = 0;
+    virtual bool intersect(Ray ray, IntersectionData& idata, bool backface = false, bool any = false, real_t max_t = 1e30f) const = 0;
 };
 
 static real_t deg2rad(real_t deg)

@@ -15,13 +15,13 @@ void Scene::addObject(const Object& object)
     objects.push_back(object);
 }
 
-bool Scene::intersect(Ray ray, IntersectionData& idata, bool backface, bool any) const
+bool Scene::intersect(Ray ray, IntersectionData& idata, bool backface, bool any, real_t max_t) const
 {
     IntersectionData temp_idata;
-    idata.t = 1e30f;
+    idata.t = max_t;
     if (!any) { // "Temporary" workaround for rendering lights
         for (const Light& l : lights) {
-            bool intersection = l.intersect(ray, temp_idata, backface, any);
+            bool intersection = l.intersect(ray, temp_idata, backface, any, max_t);
             if (intersection && temp_idata.t < idata.t) {
                 idata = temp_idata;
                 idata.u = -1;
@@ -31,13 +31,13 @@ bool Scene::intersect(Ray ray, IntersectionData& idata, bool backface, bool any)
     }
 
     for (const Object& o : objects) {
-        bool intersection = o.intersect(ray, temp_idata, backface, any);
+        bool intersection = o.intersect(ray, temp_idata, backface, any, max_t);
         if (intersection && temp_idata.t < idata.t) {
             idata = temp_idata;
             if (any) return true;
         }
     }
-    return idata.t < 1e30f;
+    return idata.t < max_t;
 }
 
 rapidjson::Document getJsonDocument(const std::string& fileName)
