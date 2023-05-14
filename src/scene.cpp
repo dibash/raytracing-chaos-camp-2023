@@ -40,6 +40,20 @@ bool Scene::intersect(Ray ray, IntersectionData& idata, bool backface, bool any,
     return idata.t < max_t;
 }
 
+Color Scene::shade(const Ray& ray, const IntersectionData& idata) const
+{
+    if (idata.u == -1 && idata.v == -1) {
+        // "Temporary" workaround for rendering lights
+        return { 1, 1, .9f, 1 };
+    }
+    Color finalColor{ 1, 0, 1, 1 };
+    const Material* material = idata.object ? idata.object->getMaterial() : nullptr;
+    if (material) {
+        finalColor = material->shade(*this, ray, idata);
+    }
+    return finalColor;
+}
+
 rapidjson::Document getJsonDocument(const std::string& fileName)
 {
     using namespace rapidjson;

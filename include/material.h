@@ -9,7 +9,7 @@ const real_t shadowBias = 0.0001f;
 
 class Material {
 public:
-    virtual Color shade(const Scene& scene, const Ray& ray, const IntersectionData& idata) const = 0;
+    virtual Color shade(const Scene& scene, const Ray& ray, const IntersectionData& idata, int depth = 0) const = 0;
 };
 
 
@@ -19,7 +19,7 @@ public:
     bool smooth_shading = false;
 
 public:
-    virtual Color shade(const Scene& scene, const Ray& ray, const IntersectionData& idata) const override;
+    virtual Color shade(const Scene& scene, const Ray& ray, const IntersectionData& idata, int depth = 0) const override;
 };
 
 
@@ -29,5 +29,5 @@ public:
     bool smooth_shading = false;
 
 public:
-    virtual Color shade(const Scene& scene, const Ray& ray, const IntersectionData& idata) const override;
+    virtual Color shade(const Scene& scene, const Ray& ray, const IntersectionData& idata, int depth = 0) const override;
 };

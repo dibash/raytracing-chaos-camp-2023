@@ -11,20 +11,6 @@
 #include <execution>
 
 
-Color shade(const Scene& scene, const Ray& ray, const IntersectionData &idata)
-{
-    if (idata.u == -1 && idata.v == -1) {
-        // "Temporary" workaround for rendering lights
-        return { 1, 1, .9f, 1 };
-    }
-    Color finalColor{ 1, 0, 1, 1 };
-    const Material* material = idata.object ? idata.object->getMaterial() : nullptr;
-    if (material) {
-        finalColor = material->shade(scene, ray, idata);
-    }
-    return finalColor;
-}
-
 void renderImage(Color* pixels, const Scene& scene)
 {
     const size_t WIDTH = scene.settings.width;
@@ -42,7 +28,7 @@ void renderImage(Color* pixels, const Scene& scene)
                 Ray ray = scene.camera.generateCameraRay(WIDTH, HEIGHT, x, y);
                 const bool intersection = scene.intersect(ray, idata);
                 if (intersection) {
-                    pixels[y * WIDTH + x] = shade(scene, ray, idata);
+                    pixels[y * WIDTH + x] = scene.shade(ray, idata);
                     //pixels[y * WIDTH + x] = { idata.u, idata.v, 0.1f };
                     //pixels[y * WIDTH + x] = { idata.normal.x, idata.normal.y, idata.normal.z };
                 }

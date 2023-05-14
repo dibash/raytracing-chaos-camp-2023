@@ -35,6 +35,8 @@ public:
     void addObject(const Object& object);
     void load(const std::string& fileName);
 
+    Color shade(const Ray& ray, const IntersectionData& idata) const;
+
     // Intersectable
     bool intersect(Ray ray, IntersectionData& idata, bool backface = false, bool any = false, real_t max_t = 1e30f) const override;
 

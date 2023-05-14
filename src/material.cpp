@@ -2,7 +2,9 @@
 #include "scene.h"
 #include "scene_object.h"
 
-Color DiffuseMaterial::shade(const Scene& scene, const Ray& ray, const IntersectionData& idata) const
+const int MAX_DEPTH = 4;
+
+Color DiffuseMaterial::shade(const Scene& scene, const Ray& ray, const IntersectionData& idata, int depth) const
 {
     const Vector ip = ray.origin + ray.dir * idata.t + idata.normal * shadowBias;
     IntersectionData idata2;
@@ -30,7 +32,20 @@ Color DiffuseMaterial::shade(const Scene& scene, const Ray& ray, const Intersect
     return finalColor;
 }
 
-Color ReflectiveMaterial::shade(const Scene& scene, const Ray& ray, const IntersectionData& idata) const
-{
-    return albedo;
+Color ReflectiveMaterial::shade(const Scene& scene, const Ray& ray, const IntersectionData& idata, int depth) const {
+    const Vector ip = ray.origin + ray.dir * idata.t + idata.normal * shadowBias;
+    const Vector reflectedDir = reflect(ray.dir, idata.normal);
+    const Ray reflectedRay = { ip, reflectedDir };
+    IntersectionData idata2;
+
+    // Compute the reflected color recursively
+    Color reflectedColor = scene.settings.background;
+    if (depth < MAX_DEPTH) {
+        bool hit = scene.intersect(reflectedRay, idata2);
+        if (hit) {
+            reflectedColor = idata2.object->getMaterial()->shade(scene, reflectedRay, idata2);
+        }
+    }
+
+    return reflectedColor * albedo;
 }
