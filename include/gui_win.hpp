@@ -143,6 +143,11 @@ private:
         BitBlt(GetDC(hwnd), 0, 0, screenBuffer.width, screenBuffer.height, screenBuffer.hBackDC, 0, 0, SRCCOPY);
     }
 
+    void printScreenCoordinates(int x, int y)
+    {
+        printf("(%d, %d)\n", x, y);
+    }
+
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
         switch (uMsg)
@@ -156,6 +161,10 @@ private:
 
         case WM_UPDATE_WINDOW_BUFFER:
             ((Window*)GetWindowLongPtr(hwnd, GWLP_USERDATA))->showBuffer();
+            break;
+
+        case WM_LBUTTONDOWN:
+            ((Window*)GetWindowLongPtr(hwnd, GWLP_USERDATA))->printScreenCoordinates(LOWORD(lParam), HIWORD(lParam));
             break;
         }
         return DefWindowProc(hwnd, uMsg, wParam, lParam);
