@@ -42,8 +42,8 @@ Color ReflectiveMaterial::shade(const Scene& scene, const Ray& ray, const Inters
     Color reflectedColor = scene.settings.background;
     if (depth < MAX_DEPTH) {
         bool hit = scene.intersect(reflectedRay, idata2);
-        if (hit) {
-            reflectedColor = idata2.object->getMaterial()->shade(scene, reflectedRay, idata2);
+        if (hit && idata2.object) {
+            reflectedColor = idata2.object->getMaterial()->shade(scene, reflectedRay, idata2, depth + 1);
         }
     }
 
