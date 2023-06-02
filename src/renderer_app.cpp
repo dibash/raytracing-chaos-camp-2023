@@ -1,4 +1,5 @@
 #include <memory>
+#include <chrono>
 
 using std::unique_ptr;
 
@@ -27,6 +28,7 @@ void writePixels(Window& window, Color* pixels)
 
 int main(int argc, char* argv[])
 {
+    auto startTime = std::chrono::steady_clock::now();
     if (argc == 2) {
         int WIDTH, HEIGHT;
         printf("Scene file selected: %s\n", argv[1]);
@@ -37,6 +39,9 @@ int main(int argc, char* argv[])
         renderFile(pixels, argv[1]);
         Window window(WIDTH, HEIGHT, "Raytracing 2023");
         writePixels(window, pixels);
+        auto endTime = std::chrono::steady_clock::now();
+        auto duration = std::chrono::duration<double>(endTime - startTime);
+        printf("Rendering took %lf seconds.\n", duration.count());
         window.run();
     }
     else {
@@ -50,7 +55,11 @@ int main(int argc, char* argv[])
             writePixels(window, pixels);
             window.runOnce();
         }
+        auto endTime = std::chrono::steady_clock::now();
+        auto duration = std::chrono::duration<double>(endTime - startTime);
+        printf("Rendering took %lf seconds.\n", duration.count());
         window.run();
     }
+
     return 0;
 }
