@@ -189,14 +189,15 @@ inline Vector reflect(const Vector& i, const Vector &n)
 }
 
 // ior = eta1 / eta2
-inline Vector refract(const Vector& i, const Vector& n, real_t ior)
+inline Vector refract(const Vector& i, const Vector& n, real_t ior, bool& totalInternalReflection)
 {
     real_t NdotI = i * n;
     real_t k = 1 - (ior * ior) * (1 - NdotI * NdotI);
 
+    totalInternalReflection = k < 0;
     // Check for total inner reflection
-    if (k < 0.0)
-        return Vector(0, 0, 0);
+    if (totalInternalReflection)
+        return reflect(i, n);
 
     return normalized(ior * i - (ior * NdotI + sqrt(k)) * n);
 }

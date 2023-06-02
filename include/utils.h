@@ -36,6 +36,11 @@ inline Color operator*(const Color& c1, const Color& c2)
     return { c1.r * c2.r, c1.g * c2.g, c1.b * c2.b, c1.a * c2.a };
 }
 
+inline Color operator+(const Color& c1, const Color& c2)
+{
+    return {c1.r + c2.r, c1.g + c2.g, c1.b + c2.b, c1.a};
+}
+
 struct IntersectionData {
     real_t t = 0;
     real_t u = 0;

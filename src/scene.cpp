@@ -19,6 +19,7 @@ bool Scene::intersect(Ray ray, IntersectionData& idata, bool backface, bool any,
 {
     IntersectionData temp_idata;
     idata.t = max_t;
+    /*
     if (!any) { // "Temporary" workaround for rendering lights
         for (const Light& l : lights) {
             bool intersection = l.intersect(ray, temp_idata, backface, any, max_t);
@@ -29,6 +30,7 @@ bool Scene::intersect(Ray ray, IntersectionData& idata, bool backface, bool any,
             }
         }
     }
+    */
 
     for (const Object& o : objects) {
         bool intersection = o.intersect(ray, temp_idata, backface, any, max_t);
@@ -196,6 +198,22 @@ Material* loadMaterial(const rapidjson::Value& materialVal)
                 const Value& smoothShadingVal = materialVal.FindMember("smooth_shading")->value;
                 if (!smoothShadingVal.IsNull() && smoothShadingVal.IsBool()) {
                     reflectiveMaterial->smooth_shading = smoothShadingVal.GetBool();
+                }
+            }
+            else if (typeStr == "refractive") {
+                RefractiveMaterial* refractiveMaterial = new RefractiveMaterial;
+                material = refractiveMaterial;
+                const Value& albedoVal = materialVal.FindMember("albedo")->value;
+                if (!albedoVal.IsNull() && albedoVal.IsArray()) {
+                    refractiveMaterial->albedo = loadColor(albedoVal.GetArray());
+                }
+                const Value& smoothShadingVal = materialVal.FindMember("smooth_shading")->value;
+                if (!smoothShadingVal.IsNull() && smoothShadingVal.IsBool()) {
+                    refractiveMaterial->smooth_shading = smoothShadingVal.GetBool();
+                }
+                const Value& iorVal = materialVal.FindMember("ior")->value;
+                if (!iorVal.IsNull() && iorVal.IsNumber()) {
+                    refractiveMaterial->IOR = iorVal.GetFloat();
                 }
             }
             else {
