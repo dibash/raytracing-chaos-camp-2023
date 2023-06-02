@@ -176,7 +176,19 @@ Material* loadMaterial(const rapidjson::Value& materialVal)
         const Value& typeVal = materialVal.FindMember("type")->value;
         if (!typeVal.IsNull() && typeVal.IsString()) {
             std::string typeStr = typeVal.GetString();
-            if (typeStr == "diffuse") {
+            if (typeStr == "constant") {
+                ConstantMaterial* constantMaterial = new ConstantMaterial;
+                material = constantMaterial;
+                const Value& albedoVal = materialVal.FindMember("albedo")->value;
+                if (!albedoVal.IsNull() && albedoVal.IsArray()) {
+                    constantMaterial->albedo = loadColor(albedoVal.GetArray());
+                }
+                const Value& smoothShadingVal = materialVal.FindMember("smooth_shading")->value;
+                if (!smoothShadingVal.IsNull() && smoothShadingVal.IsBool()) {
+                    constantMaterial->smooth_shading = smoothShadingVal.GetBool();
+                }
+            }
+            else if (typeStr == "diffuse") {
                 DiffuseMaterial* diffuseMaterial = new DiffuseMaterial;
                 material = diffuseMaterial;
                 const Value& albedoVal = materialVal.FindMember("albedo")->value;

@@ -13,6 +13,16 @@ public:
 };
 
 
+class ConstantMaterial : public Material {
+public:
+    Color albedo{};
+    bool smooth_shading = false;
+
+public:
+    virtual Color shade(const Scene& scene, const Ray& ray, const IntersectionData& idata, int depth = 0) const override;
+};
+
+
 class DiffuseMaterial : public Material {
 public:
     Color albedo{};

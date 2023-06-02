@@ -4,6 +4,17 @@
 
 const int MAX_DEPTH = 8;
 
+Color ConstantMaterial::shade(const Scene& scene, const Ray& ray, const IntersectionData& idata, int depth) const
+{
+    IntersectionData idataSmooth = smooth_shading ?
+        idata.object->smoothIntersection(idata) :
+        idata;
+
+    const real_t theta = dot(-ray.dir, idataSmooth.normal);
+    const real_t val = theta / 3 * 2 + 1.0f / 3;
+    return val * albedo;
+}
+
 Color DiffuseMaterial::shade(const Scene& scene, const Ray& ray, const IntersectionData& idata, int depth) const
 {
     IntersectionData idataSmooth = smooth_shading ?
