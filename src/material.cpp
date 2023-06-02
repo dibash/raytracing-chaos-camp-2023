@@ -6,7 +6,12 @@ const int MAX_DEPTH = 4;
 
 Color DiffuseMaterial::shade(const Scene& scene, const Ray& ray, const IntersectionData& idata, int depth) const
 {
-    const Vector ip = ray.origin + ray.dir * idata.t + idata.normal * shadowBias;
+    IntersectionData idataSmooth = smooth_shading ?
+        idata.object->smoothIntersection(idata) :
+        idata;
+
+    Vector ip = idataSmooth.ip + idataSmooth.normal * shadowBias;
+
     IntersectionData idata2;
     Color finalColor = { 0,0,0,1 };
 
@@ -15,7 +20,7 @@ Color DiffuseMaterial::shade(const Scene& scene, const Ray& ray, const Intersect
         const Ray shadowRay = { ip, normalized(lightDir) };
         bool shadow = scene.intersect(shadowRay, idata2, true, true, lightDir.length());
         if (!shadow) {
-            const real_t cosLaw = std::max(.0f, dot(shadowRay.dir, idata.normal));
+            const real_t cosLaw = std::max(.0f, dot(shadowRay.dir, idataSmooth.normal));
             const real_t rSqr = lightDir.lengthSqr();
             const real_t area = 4 * PI * rSqr;
             const Color contribution = (l.intensity / area * cosLaw) * albedo;
@@ -24,7 +29,7 @@ Color DiffuseMaterial::shade(const Scene& scene, const Ray& ray, const Intersect
     }
 
     if (scene.lights.empty()) {
-        const real_t theta = dot(-ray.dir, idata.normal);
+        const real_t theta = dot(-ray.dir, idataSmooth.normal);
         const real_t val = theta / 3 * 2 + 1.0f / 3;
         return val * albedo;
     }
@@ -32,9 +37,15 @@ Color DiffuseMaterial::shade(const Scene& scene, const Ray& ray, const Intersect
     return finalColor;
 }
 
-Color ReflectiveMaterial::shade(const Scene& scene, const Ray& ray, const IntersectionData& idata, int depth) const {
-    const Vector ip = ray.origin + ray.dir * idata.t + idata.normal * shadowBias;
-    const Vector reflectedDir = reflect(ray.dir, idata.normal);
+Color ReflectiveMaterial::shade(const Scene& scene, const Ray& ray, const IntersectionData& idata, int depth) const
+{
+    IntersectionData idataSmooth = smooth_shading ?
+        idata.object->smoothIntersection(idata) :
+        idata;
+
+    Vector ip = idataSmooth.ip + idataSmooth.normal * shadowBias;
+
+    const Vector reflectedDir = reflect(ray.dir, idataSmooth.normal);
     const Ray reflectedRay = { ip, reflectedDir };
     IntersectionData idata2;
 

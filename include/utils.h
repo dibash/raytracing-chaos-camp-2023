@@ -40,8 +40,11 @@ struct IntersectionData {
     real_t t = 0;
     real_t u = 0;
     real_t v = 0;
+    real_t w = 0;
+    Vector ip{};
     Vector normal{};
     const Object* object = nullptr;
+    int triangle_index = -1;
 };
 
 struct Ray {

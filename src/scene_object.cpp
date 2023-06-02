@@ -2,6 +2,71 @@
 #include "utils.h"
 #include "renderer_lib.h"
 
+#include <algorithm>
+
+void Object::calculate_normals()
+{
+    vertex_normals.resize(vertices.size(), {});
+
+    size_t num_triangles = triangles.size() / 3;
+    for (size_t i = 0; i < num_triangles; i++) {
+        int i1 = triangles[i*3 + 0];
+        int i2 = triangles[i*3 + 1];
+        int i3 = triangles[i*3 + 2];
+        Vector e1 = vertices[i2] - vertices[i1];
+        Vector e2 = vertices[i3] - vertices[i1];
+        Vector tN = normalized(cross(e1, e2));
+        vertex_normals[i1] += tN;
+        vertex_normals[i2] += tN;
+        vertex_normals[i3] += tN;
+    }
+
+    for (Vector& vN : vertex_normals) {
+        vN.normalize();
+    }
+}
+
+IntersectionData Object::smoothIntersection(const IntersectionData& idata) const
+{
+    IntersectionData idataSmooth = idata;
+
+    const Vector P = idata.ip;
+    const Vector A = vertices[triangles[idata.triangle_index * 3 + 0]];
+    const Vector B = vertices[triangles[idata.triangle_index * 3 + 1]];
+    const Vector C = vertices[triangles[idata.triangle_index * 3 + 2]];
+
+    const Vector nA = vertex_normals[triangles[idata.triangle_index * 3 + 0]];
+    const Vector nB = vertex_normals[triangles[idata.triangle_index * 3 + 1]];
+    const Vector nC = vertex_normals[triangles[idata.triangle_index * 3 + 2]];
+
+    // Attempt to fix the shadow terminator problem.
+    // Hanika, J. (2021). Hacking the Shadow Terminator.
+    // In: Marrs, A., Shirley, P., Wald, I. (eds) Ray Tracing Gems II. Apress, Berkeley, CA.
+    // https://doi.org/10.1007/978-1-4842-7185-8_4
+    // https://jo.dreggn.org/home/2021_terminator.pdf
+    Vector tmpw = P - A;
+    Vector tmpu = P - B;
+    Vector tmpv = P - C;
+    // project these onto the tangent planes
+    // defined by the shading normals
+    real_t dotw = std::min(0.f, dot(tmpw, nA));
+    real_t dotu = std::min(0.f, dot(tmpu, nB));
+    real_t dotv = std::min(0.f, dot(tmpv, nC));
+    tmpw = tmpw - dotw * nA;
+    tmpu = tmpu - dotu * nB;
+    tmpv = tmpv - dotv * nC;
+
+    // finally P' is the barycentric mean of these three
+    idataSmooth.ip = P + idata.u * tmpu + idata.v * tmpv + idata.w * tmpw;
+    idataSmooth.normal = normalized(
+        nA * idata.w +
+        nB * idata.u +
+        nC * idata.v
+    );
+
+    return idataSmooth;
+}
+
 bool triangleIntersection(Ray ray, const std::vector<Vector>& vertices, int v1, int v2, int v3, IntersectionData& idata, bool backface = false, real_t max_t = 1e30f)
 {
     real_t& t = idata.t;
@@ -59,6 +124,8 @@ bool triangleIntersection(Ray ray, const std::vector<Vector>& vertices, int v1, 
         return false;
     }
 
+    idata.w = 1 - u - v;
+    idata.ip = ray.origin + ray.dir * t;
     idata.normal = normalized(cross(e1, e2));
     // The ray intersects the triangle
     return true;
@@ -84,6 +151,7 @@ bool Object::intersect(Ray ray, IntersectionData& idata, bool backface, bool any
         if (hit && temp_idata.t < idata.t) {
             idata = temp_idata;
             idata.object = this;
+            idata.triangle_index = int(i);
             if (any) return true;
         }
     }
