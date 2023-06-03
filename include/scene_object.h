@@ -44,7 +44,7 @@ private:
 
 struct Light : Intersectable {
     Vector position{};
-    int intensity = 1000;
+    real_t intensity = 1000;
 
     // Intersectable
     bool intersect(Ray ray, IntersectionData& idata, bool backface = false, bool any = false, real_t max_t = 1e30f) const override;

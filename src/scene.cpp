@@ -124,7 +124,7 @@ Light loadLight(const rapidjson::Value& lightVal)
     if (!lightVal.IsNull() && lightVal.IsObject()) {
         const Value& intensityVal = lightVal.FindMember("intensity")->value;
         if (!intensityVal.IsNull() && intensityVal.IsNumber()) {
-            light.intensity = intensityVal.GetInt();
+            light.intensity = intensityVal.GetFloat();
         }
         const Value& positionVal = lightVal.FindMember("position")->value;
         if (!positionVal.IsNull() && positionVal.IsArray()) {
