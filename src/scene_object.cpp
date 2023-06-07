@@ -26,6 +26,19 @@ void Object::calculate_normals()
     }
 }
 
+void Object::calculate_aabb()
+{
+    for (const Vector& v : vertices) {
+        aabb.min.x = std::min(aabb.min.x, v.x);
+        aabb.max.x = std::max(aabb.max.x, v.x);
+        aabb.min.y = std::min(aabb.min.y, v.y);
+        aabb.max.y = std::max(aabb.max.y, v.y);
+        aabb.min.z = std::min(aabb.min.z, v.z);
+        aabb.max.z = std::max(aabb.max.z, v.z);
+    }
+    hasAABB = aabb.max.x - aabb.min.x > EPSILON && aabb.max.y - aabb.min.y > EPSILON && aabb.max.z - aabb.min.z > EPSILON;
+}
+
 IntersectionData Object::smoothIntersection(const IntersectionData& idata) const
 {
     IntersectionData idataSmooth = idata;
@@ -131,12 +144,81 @@ bool triangleIntersection(Ray ray, const std::vector<Vector>& vertices, int v1, 
     return true;
 }
 
+bool AABBIntersection(Ray ray, AABB aabb)
+{
+    const Vector invDir = Vector(1 / ray.dir.x, 1 / ray.dir.y, 1 / ray.dir.z);
+
+    // X planes
+    real_t tMinX = (aabb.min.x - ray.origin.x) * invDir.x;
+    if (tMinX > 0) {
+        Vector pMinX = ray.origin + tMinX * ray.dir;
+        if (pMinX.y >= aabb.min.y && pMinX.y <= aabb.max.y &&
+            pMinX.z >= aabb.min.z && pMinX.z <= aabb.max.z) {
+            return true;
+        }
+    }
+
+    real_t tMaxX = (aabb.max.x - ray.origin.x) * invDir.x;
+    if (tMaxX > 0) {
+        Vector pMaxX = ray.origin + tMaxX * ray.dir;
+        if (pMaxX.y >= aabb.min.y && pMaxX.y <= aabb.max.y &&
+            pMaxX.z >= aabb.min.z && pMaxX.z <= aabb.max.z) {
+            return true;
+        }
+    }
+
+    // Y planes
+    real_t tMinY = (aabb.min.y - ray.origin.y) * invDir.y;
+    if (tMinY > 0) {
+        Vector pMinY = ray.origin + tMinY * ray.dir;
+        if (pMinY.x >= aabb.min.x && pMinY.x <= aabb.max.x &&
+            pMinY.z >= aabb.min.z && pMinY.z <= aabb.max.z) {
+            return true;
+        }
+    }
+
+    real_t tMaxY = (aabb.max.y - ray.origin.y) * invDir.y;
+    if (tMaxY > 0) {
+        Vector pMaxY = ray.origin + tMaxY * ray.dir;
+        if (pMaxY.x >= aabb.min.x && pMaxY.x <= aabb.max.x &&
+            pMaxY.z >= aabb.min.z && pMaxY.z <= aabb.max.z) {
+            return true;
+        }
+    }
+
+    // Z planes
+    real_t tMinZ = (aabb.min.z - ray.origin.z) * invDir.z;
+    if (tMinZ > 0) {
+        Vector pMinZ = ray.origin + tMinZ * ray.dir;
+        if (pMinZ.x >= aabb.min.x && pMinZ.x <= aabb.max.x &&
+            pMinZ.y >= aabb.min.y && pMinZ.y <= aabb.max.y) {
+            return true;
+        }
+    }
+
+    real_t tMaxZ = (aabb.max.z - ray.origin.z) * invDir.z;
+    if (tMaxZ > 0) {
+        Vector pMaxZ = ray.origin + tMaxZ * ray.dir;
+        if (pMaxZ.x >= aabb.min.x && pMaxZ.x <= aabb.max.x &&
+            pMaxZ.y >= aabb.min.y && pMaxZ.y <= aabb.max.y) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool Object::intersect(Ray ray, IntersectionData& idata, bool backface, bool any, real_t max_t) const
 {
     size_t num_triangles = triangles.size() / 3;
     IntersectionData temp_idata{};
 
     idata.t = max_t;
+
+    if (hasAABB && !AABBIntersection(ray, aabb)) {
+        return false;
+    }
+
     for (size_t i = 0; i < num_triangles; i++) {
         const bool hit = triangleIntersection(
             ray,

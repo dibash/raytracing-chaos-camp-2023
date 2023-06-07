@@ -57,6 +57,11 @@ struct Ray {
     Vector dir = {};
 };
 
+struct AABB {
+    Vector min{ 1e30f, 1e30f, 1e30f };
+    Vector max{ -1e30f, -1e30f, -1e30f };
+};
+
 class Intersectable {
 public:
     virtual bool intersect(Ray ray, IntersectionData& idata, bool backface = false, bool any = false, real_t max_t = 1e30f) const = 0;

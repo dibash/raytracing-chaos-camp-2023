@@ -12,6 +12,8 @@ private:
     std::vector<Vector> vertex_normals;
     std::vector<int> triangles;
     const Material* material;
+    AABB aabb;
+    bool hasAABB;
 
 public:
     // Constructors
@@ -19,15 +21,19 @@ public:
         : vertices(vertices)
         , triangles(triangles)
         , material(material)
+        , hasAABB(false)
     {
         calculate_normals();
+        calculate_aabb();
     }
     Object(const std::vector<Vector>& vertices, const std::vector<int>& triangles, const Material* material = nullptr)
         : vertices(vertices)
         , triangles(triangles)
         , material(material)
+        , hasAABB(false)
     {
         calculate_normals();
+        calculate_aabb();
     }
 
     // Intersectable
@@ -40,6 +46,7 @@ public:
 
 private:
     void calculate_normals();
+    void calculate_aabb();
 };
 
 struct Light : Intersectable {
