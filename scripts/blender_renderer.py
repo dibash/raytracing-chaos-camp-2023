@@ -131,7 +131,7 @@ class CustomRenderEngine(bpy.types.RenderEngine):
     # When the render engine instance is destroy, this is called. Clean up any
     # render engine data here, for example stopping running render threads.
     def __del__(self):
-        #ctypes.windll.kernel32.FreeLibrary(self.dll._handle)
+        del self.c_buffer
         pass
 
     # This is the method called by Blender for final renders (F12)
@@ -149,12 +149,12 @@ class CustomRenderEngine(bpy.types.RenderEngine):
                 export_scene_to_json(scene, self.scene_path)
 
         with CodeTimer('Render'):
-            c_buffer = (ctypes.c_float * (self.size_x * self.size_y * 4))()
-            self.dll.renderFile(c_buffer, ctypes.c_char_p(self.scene_path.encode('utf-8')))
+            self.c_buffer = (ctypes.c_float * (self.size_x * self.size_y * 4))()
+            self.dll.renderFile(self.c_buffer, ctypes.c_char_p(self.scene_path.encode('utf-8')))
 
         with CodeTimer('Write image'):
             # Flip pixel buffer
-            np_array = np.frombuffer(c_buffer, dtype=np.float32)
+            np_array = np.frombuffer(self.c_buffer, dtype=np.float32)
             np_array = np_array.reshape((self.size_y, self.size_x, 4))
             np_array = np.flipud(np_array)
             np_array = np_array.reshape((self.size_y * self.size_x, 4))
