@@ -30,6 +30,14 @@ ChaosRendererAPI void renderFile(void* pixels, const char* fileName)
     renderImage((Color*)pixels, scene);
 }
 
+ChaosRendererAPI void renderFile2(void* pixels, const char* fileName, int width, int height)
+{
+    Scene scene(fileName);
+    if (width) scene.settings.width = width;
+    if (height) scene.settings.height = height;
+    renderImage((Color*)pixels, scene);
+}
+
 ChaosRendererAPI void render2(void* pixels, const float* vertices, const int* triangleIndices, int trianglesCount)
 {
     std::vector<Vector> ob_vertices;

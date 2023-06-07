@@ -25,7 +25,7 @@ VIEWPORT_WIDTH = 1920
 VIEWPORT_HEIGHT = 1080
 VIEWPORT_CHANNELS = 4
 
-dll = ctypes.WinDLL(RENDERER_LIB_FULL_PATH)
+dll = ctypes.CDLL(RENDERER_LIB_FULL_PATH)
 dll.render.argtypes = [ctypes.POINTER(ctypes.c_float), ctypes.c_float]
 dll.renderCamera.argtypes = [ctypes.POINTER(ctypes.c_float)] + [ctypes.c_float] * 7
 dll.renderFile.argtypes = [ctypes.POINTER(ctypes.c_float), ctypes.c_char_p]
@@ -126,7 +126,6 @@ class App(customtkinter.CTk):
         slider_obj.slider = slider
         slider_obj.label = label
         self.sliders[name] = slider_obj
-
 
     def render_button_event(self):
         x = self.sliders['x'].slider.get()
