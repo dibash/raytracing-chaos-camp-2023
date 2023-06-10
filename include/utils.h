@@ -41,6 +41,13 @@ inline Color operator+(const Color& c1, const Color& c2)
     return {c1.r + c2.r, c1.g + c2.g, c1.b + c2.b, c1.a};
 }
 
+struct Bucket {
+    size_t x = 0;
+    size_t y = 0;
+    size_t w = 0;
+    size_t h = 0;
+};
+
 struct IntersectionData {
     real_t t = 0;
     real_t u = 0;

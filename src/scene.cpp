@@ -274,6 +274,10 @@ SceneSettings loadSettings(const rapidjson::Value& settingsVal)
                 settings.width = imageWidthVal.GetInt();
                 settings.height = imageHeightVal.GetInt();
             }
+            const Value& bucketSizeVal = imageSettingsVal.FindMember("bucket_size")->value;
+            if (!bucketSizeVal.IsNull() && bucketSizeVal.IsNumber()) {
+                settings.bucketSize = bucketSizeVal.GetInt();
+            }
         }
     }
     return settings;

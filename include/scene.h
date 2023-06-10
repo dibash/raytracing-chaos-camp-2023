@@ -11,6 +11,7 @@ struct SceneSettings {
     size_t width = 1920;
     size_t height = 1080;
     Color background{ 0.2f, 0.2f, 0.2f };
+    size_t bucketSize = 24;
 };
 
 class Scene : Intersectable {

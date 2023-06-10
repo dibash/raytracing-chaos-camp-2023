@@ -10,11 +10,101 @@
 #include <algorithm>
 #include <execution>
 
+std::vector<Bucket> generate_buckets(const Scene& scene)
+{
+    const size_t full_buckets_h = scene.settings.width / scene.settings.bucketSize;
+    const size_t partial_buckets_h_width = scene.settings.width % scene.settings.bucketSize;
+    const size_t full_buckets_v = scene.settings.height / scene.settings.bucketSize;
+    const size_t partial_buckets_v_height = scene.settings.height % scene.settings.bucketSize;
+
+    std::vector<Bucket> buckets;
+    buckets.reserve((full_buckets_v + (partial_buckets_v_height != 0)) * (full_buckets_h + (partial_buckets_h_width != 0)));
+
+    for (size_t row = 0; row < full_buckets_v; ++row) {
+        for (size_t col = 0; col < full_buckets_h; ++col) {
+            // full buckets
+            buckets.push_back({
+                col * scene.settings.bucketSize,
+                row * scene.settings.bucketSize,
+                scene.settings.bucketSize,
+                scene.settings.bucketSize
+            });
+        }
+        // Add bucket from the last column
+        if (partial_buckets_h_width) {
+            buckets.push_back({
+                full_buckets_h * scene.settings.bucketSize,
+                row * scene.settings.bucketSize,
+                partial_buckets_h_width,
+                scene.settings.bucketSize
+            });
+        }
+    }
+
+    // Generate partial buckets in the last row
+    if (partial_buckets_v_height) {
+        const size_t last_row_y = full_buckets_v * scene.settings.bucketSize;
+        for (size_t col = 0; col < full_buckets_h; ++col) {
+            buckets.push_back({
+                col * scene.settings.bucketSize,
+                last_row_y,
+                scene.settings.bucketSize,
+                partial_buckets_v_height
+            });
+        }
+        // Add bucket in the corner
+        if (partial_buckets_h_width) {
+            buckets.push_back({
+                full_buckets_h * scene.settings.bucketSize,
+                last_row_y,
+                partial_buckets_h_width,
+                partial_buckets_v_height
+                });
+        }
+    }
+
+    return buckets;
+}
+
+void renderBucket(Color* pixels, const Bucket& bucket, const Scene& scene)
+{
+    const size_t WIDTH = scene.settings.width;
+    const size_t HEIGHT = scene.settings.height;
+    IntersectionData idata;
+    for (size_t y = bucket.y; y < bucket.y + bucket.h; y++) {
+        for (size_t x = bucket.x; x < bucket.x + bucket.w; x++) {
+            Ray ray = scene.camera.generateCameraRay(WIDTH, HEIGHT, x, y);
+            const bool intersection = scene.intersect(ray, idata);
+            if (intersection) {
+                pixels[y * WIDTH + x] = scene.shade(ray, idata);
+            }
+            else {
+                pixels[y * WIDTH + x] = scene.settings.background;
+            }
+        }
+    }
+}
+
 
 void renderImage(Color* pixels, const Scene& scene)
 {
     const size_t WIDTH = scene.settings.width;
     const size_t HEIGHT = scene.settings.height;
+
+#if 1 // Buckets
+
+    std::vector<Bucket> buckets = generate_buckets(scene);
+
+    std::for_each(
+        std::execution::par,
+        buckets.begin(),
+        buckets.end(),
+        [&](const Bucket& bucket) {
+            renderBucket(pixels, bucket, scene);
+        }
+    );
+#else // Scanline
+
     std::vector<int> height(HEIGHT);
     std::iota(height.begin(), height.end(), 0);
 
@@ -52,66 +142,5 @@ void renderImage(Color* pixels, const Scene& scene)
             }
         }
     );
-}
-
-std::vector<Object> generate_scene()
-{
-    std::vector<Object> objects;
-
-    Object simple_triangle({
-        Vector(-1.75f, -1.75f, -3),
-        Vector(1.75f, -1.75f, -3),
-        Vector(0, 1.75f, -3)},
-        { 0, 1, 2 }
-    );
-
-    Object another_triangle({
-        Vector(2, 2, -3),
-        Vector(1, 2, -3),
-        Vector(1.5f, 0, -3)},
-        { 0, 1, 2 }
-    );
-
-    // Half cube
-    Object half_cube({
-        // front side
-        Vector(-0.139214f, -0.3f, -1.57511f),
-        Vector(0.024891f, -0.3f, -1.46079f),
-        Vector(0.024891f, -0.1f, -1.46079f),
-        Vector(-0.139214f, -0.1f, -1.57511f),
-        // back side
-        Vector(-0.024890f, -0.3f, -1.83921f),
-        Vector(0.139214f, -0.3f, -1.72489f),
-        Vector(0.139214f, -0.1f, -1.72489f),
-        Vector(-0.024890f, -0.1f, -1.83921f)},
-        {
-        0, 1, 2,
-        0, 2, 3,
-        1, 5, 6,
-        1, 6, 2,
-        3, 2, 6,
-        3, 6, 7
-    });
-
-    Object prism ({
-        Vector(-1.4299746f, -0.75f, -1.82386f),
-        Vector(-1.1699746f, -0.75f, -1.56386f),
-        Vector(-1.4299746f, -0.75f, -1.30386f),
-        Vector(-1.6899746f, -0.75f, -1.56386f),
-        Vector(-1.4299746f, -0.25f, -1.56386f)
-    },{
-        0, 4, 1,
-        1, 4, 2,
-        2, 3, 0,
-        2, 4, 3,
-        2, 0, 1,
-        3, 4, 0,
-    });
-
-    objects.push_back(simple_triangle);
-    objects.push_back(another_triangle);
-    objects.push_back(half_cube);
-    objects.push_back(prism);
-
-    return objects;
+#endif
 }
