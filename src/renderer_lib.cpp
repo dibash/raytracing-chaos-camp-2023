@@ -71,8 +71,12 @@ void renderBucket(Color* pixels, const Bucket& bucket, const Scene& scene)
     const size_t WIDTH = scene.settings.width;
     const size_t HEIGHT = scene.settings.height;
     IntersectionData idata;
-    for (size_t y = bucket.y; y < bucket.y + bucket.h; y++) {
-        for (size_t x = bucket.x; x < bucket.x + bucket.w; x++) {
+    for (int y = int(bucket.y); y < bucket.y + bucket.h; y++) {
+        for (int x = int(bucket.x); x < bucket.x + bucket.w; x++) {
+            #ifndef NDEBUG
+            if (y != HEIGHT / 2) break;
+            if (x != WIDTH / 2) continue;
+            #endif
             Ray ray = scene.camera.generateCameraRay(WIDTH, HEIGHT, x, y);
             const bool intersection = scene.intersect(ray, idata);
             if (intersection) {
@@ -115,29 +119,17 @@ void renderImage(Color* pixels, const Scene& scene)
         [&](int y) {
             IntersectionData idata;
             for (int x = 0; x < WIDTH; x++) {
+                #ifndef NDEBUG
+                if (y != HEIGHT / 2) break;
+                if (x != WIDTH / 2) continue;
+                #endif
                 Ray ray = scene.camera.generateCameraRay(WIDTH, HEIGHT, x, y);
                 const bool intersection = scene.intersect(ray, idata);
                 if (intersection) {
                     pixels[y * WIDTH + x] = scene.shade(ray, idata);
-                    //pixels[y * WIDTH + x] = { idata.u, idata.v, 0.1f };
-                    //pixels[y * WIDTH + x] = { idata.normal.x, idata.normal.y, idata.normal.z };
                 }
                 else {
                     pixels[y * WIDTH + x] = scene.settings.background;
-                    /*
-                    Vector absDir{ std::abs(ray.dir.x), std::abs(ray.dir.y), std::abs(ray.dir.z) };
-                    real_t axis = std::max({ absDir.x, absDir.y, absDir.z });
-                    pixels[y * WIDTH + x] = {
-                        std::abs(absDir.x - axis) < EPSILON ? absDir.x : 0,
-                        std::abs(absDir.y - axis) < EPSILON ? absDir.y : 0,
-                        std::abs(absDir.z - axis) < EPSILON ? absDir.z : 0,
-                    };
-                    pixels[y * WIDTH + x] = {
-                        std::abs(ray.dir.x),
-                        std::abs(ray.dir.y),
-                        std::abs(ray.dir.z / 2.0f),
-                    };
-                    */
                 }
             }
         }
