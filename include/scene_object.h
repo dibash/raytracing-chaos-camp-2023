@@ -4,36 +4,60 @@
 #include "utils.h"
 #include "material.h"
 
+struct BVHNode {
+    AABB bounds;
+    int left = -1;
+    int right = -1;
+    int startTriangleIndex = -1;
+    int endTriangleIndex = -1;
+};
+
+struct Triangle {
+    int v1 = -1;
+    int v2 = -1;
+    int v3 = -1;
+};
+
 class Object : Intersectable {
 
 private:
     // Object data
     std::vector<Vector> vertices;
     std::vector<Vector> vertex_normals;
-    std::vector<int> triangles;
+    std::vector<Triangle> triangles;
     const Material* material;
     AABB aabb;
     bool hasAABB;
+
+    std::vector<BVHNode> bvh;
 
 public:
     // Constructors
     Object(std::vector<Vector>&& vertices, std::vector<int>&& triangles, const Material* material = nullptr)
         : vertices(vertices)
-        , triangles(triangles)
+        , triangles(triangles.size() / 3)
         , material(material)
         , hasAABB(false)
     {
+        for (int i = 0; i < this->triangles.size(); ++i) {
+            this->triangles[i] = { triangles[i * 3 + 0], triangles[i * 3 + 1], triangles[i * 3 + 2] };
+        }
         calculate_normals();
         calculate_aabb();
+        calculate_bvh();
     }
     Object(const std::vector<Vector>& vertices, const std::vector<int>& triangles, const Material* material = nullptr)
         : vertices(vertices)
-        , triangles(triangles)
+        , triangles(triangles.size() / 3)
         , material(material)
         , hasAABB(false)
     {
+        for (int i = 0; i < this->triangles.size(); ++i) {
+            this->triangles[i] = { triangles[i * 3 + 0], triangles[i * 3 + 1], triangles[i * 3 + 2] };
+        }
         calculate_normals();
         calculate_aabb();
+        calculate_bvh();
     }
 
     // Intersectable
@@ -47,6 +71,11 @@ public:
 private:
     void calculate_normals();
     void calculate_aabb();
+    void calculate_bvh();
+
+    void calculate_bvh_recursive(int nodeIndex);
+
+    bool BVHIntersection(Ray ray, const BVHNode& node, IntersectionData& idata, bool backface, bool any, real_t max_t) const;
 };
 
 struct Light : Intersectable {

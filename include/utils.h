@@ -9,6 +9,8 @@ const real_t PI = 3.14159265359f;
 #include "vector.h"
 #include "matrix.h"
 
+#include <algorithm>
+
 class Object;
 
 struct Color {
@@ -67,6 +69,15 @@ struct Ray {
 struct AABB {
     Vector min{ 1e30f, 1e30f, 1e30f };
     Vector max{ -1e30f, -1e30f, -1e30f };
+
+    void expand(const Vector& v) {
+        min.x = std::min(min.x, v.x);
+        max.x = std::max(max.x, v.x);
+        min.y = std::min(min.y, v.y);
+        max.y = std::max(max.y, v.y);
+        min.z = std::min(min.z, v.z);
+        max.z = std::max(max.z, v.z);
+    }
 };
 
 class Intersectable {

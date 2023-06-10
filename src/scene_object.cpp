@@ -8,11 +8,11 @@ void Object::calculate_normals()
 {
     vertex_normals.resize(vertices.size(), {});
 
-    size_t num_triangles = triangles.size() / 3;
+    size_t num_triangles = triangles.size();
     for (size_t i = 0; i < num_triangles; i++) {
-        int i1 = triangles[i*3 + 0];
-        int i2 = triangles[i*3 + 1];
-        int i3 = triangles[i*3 + 2];
+        int i1 = triangles[i].v1;
+        int i2 = triangles[i].v2;
+        int i3 = triangles[i].v3;
         Vector e1 = vertices[i2] - vertices[i1];
         Vector e2 = vertices[i3] - vertices[i1];
         Vector tN = normalized(cross(e1, e2));
@@ -29,14 +29,71 @@ void Object::calculate_normals()
 void Object::calculate_aabb()
 {
     for (const Vector& v : vertices) {
-        aabb.min.x = std::min(aabb.min.x, v.x);
-        aabb.max.x = std::max(aabb.max.x, v.x);
-        aabb.min.y = std::min(aabb.min.y, v.y);
-        aabb.max.y = std::max(aabb.max.y, v.y);
-        aabb.min.z = std::min(aabb.min.z, v.z);
-        aabb.max.z = std::max(aabb.max.z, v.z);
+        aabb.expand(v);
     }
     hasAABB = aabb.max.x - aabb.min.x > EPSILON && aabb.max.y - aabb.min.y > EPSILON && aabb.max.z - aabb.min.z > EPSILON;
+}
+
+const int MAX_TRIANGLES_PER_LEAF = 8;
+
+void Object::calculate_bvh()
+{
+    bvh.clear();
+    BVHNode& root = bvh.emplace_back();
+    root.startTriangleIndex = 0;
+    root.endTriangleIndex = int(triangles.size() - 1);
+    calculate_bvh_recursive(0);
+    // root is invalidated after the last call. DO NOT USE
+}
+
+void Object::calculate_bvh_recursive(int nodeIndex)
+{
+    // Calculate the bounding box for the node based on the triangles it contains
+    for (int i = bvh[nodeIndex].startTriangleIndex; i <= bvh[nodeIndex].endTriangleIndex; ++i) {
+        const Triangle& triangle = triangles[i];
+
+        // Expand the bounding box based on the triangle vertices
+        bvh[nodeIndex].bounds.expand(vertices[triangle.v1]);
+        bvh[nodeIndex].bounds.expand(vertices[triangle.v2]);
+        bvh[nodeIndex].bounds.expand(vertices[triangle.v3]);
+    }
+
+    // If termination criteria are met, stop recursion and return
+    if (bvh[nodeIndex].endTriangleIndex - bvh[nodeIndex].startTriangleIndex <= MAX_TRIANGLES_PER_LEAF) {
+        return;
+    }
+
+    // Calculate the axis to split along (e.g., longest axis of the bounding box)
+    Vector boxSize = bvh[nodeIndex].bounds.max - bvh[nodeIndex].bounds.min;
+    int splitAxis = boxSize.maxDimension();
+
+    // Calculate the midpoint to split the triangles
+    int mid = bvh[nodeIndex].startTriangleIndex + (bvh[nodeIndex].endTriangleIndex - bvh[nodeIndex].startTriangleIndex) / 2;
+
+    // Sort the triangles based on their centroid along the chosen axis
+    std::nth_element(triangles.begin() + bvh[nodeIndex].startTriangleIndex, triangles.begin() + mid, triangles.begin() + bvh[nodeIndex].endTriangleIndex + 1,
+        [&](const Triangle& a, const Triangle& b) {
+            Vector centroidA = (vertices[a.v1] + vertices[a.v2] + vertices[a.v3]) / 3.0f;
+            Vector centroidB = (vertices[b.v1] + vertices[b.v2] + vertices[b.v3]) / 3.0f;
+            return centroidA[splitAxis] < centroidB[splitAxis];
+        });
+
+    // Create the left and right child nodes
+    BVHNode& leftChild = bvh.emplace_back();
+    leftChild.startTriangleIndex = bvh[nodeIndex].startTriangleIndex;
+    leftChild.endTriangleIndex = mid;
+
+    BVHNode& rightChild = bvh.emplace_back();
+    rightChild.startTriangleIndex = mid + 1;
+    rightChild.endTriangleIndex = bvh[nodeIndex].endTriangleIndex;
+
+    bvh[nodeIndex].left = int(bvh.size() - 2);
+    bvh[nodeIndex].right = int(bvh.size() - 1);
+
+    // leftChild and rightChild will most likely be invalidated after these 2 calls.
+    // DO NOT USE THEM BELLOW
+    calculate_bvh_recursive(bvh[nodeIndex].left);
+    calculate_bvh_recursive(bvh[nodeIndex].right);
 }
 
 IntersectionData Object::smoothIntersection(const IntersectionData& idata) const
@@ -44,13 +101,13 @@ IntersectionData Object::smoothIntersection(const IntersectionData& idata) const
     IntersectionData idataSmooth = idata;
 
     const Vector P = idata.ip;
-    const Vector A = vertices[triangles[idata.triangle_index * 3 + 0]];
-    const Vector B = vertices[triangles[idata.triangle_index * 3 + 1]];
-    const Vector C = vertices[triangles[idata.triangle_index * 3 + 2]];
+    const Vector A = vertices[triangles[idata.triangle_index].v1];
+    const Vector B = vertices[triangles[idata.triangle_index].v2];
+    const Vector C = vertices[triangles[idata.triangle_index].v3];
 
-    const Vector nA = vertex_normals[triangles[idata.triangle_index * 3 + 0]];
-    const Vector nB = vertex_normals[triangles[idata.triangle_index * 3 + 1]];
-    const Vector nC = vertex_normals[triangles[idata.triangle_index * 3 + 2]];
+    const Vector nA = vertex_normals[triangles[idata.triangle_index].v1];
+    const Vector nB = vertex_normals[triangles[idata.triangle_index].v2];
+    const Vector nC = vertex_normals[triangles[idata.triangle_index].v3];
 
     // Attempt to fix the shadow terminator problem.
     // Hanika, J. (2021). Hacking the Shadow Terminator.
@@ -208,12 +265,54 @@ bool AABBIntersection(Ray ray, AABB aabb)
     return false;
 }
 
+bool Object::BVHIntersection(Ray ray, const BVHNode& node, IntersectionData& idata, bool backface, bool any, real_t max_t) const
+{
+    if (hasAABB && !AABBIntersection(ray, node.bounds)) {
+        return false;
+    }
+
+    if (any && idata.t < max_t) {
+        return true;
+    }
+
+    if (node.left == -1 && node.right == -1) {
+        IntersectionData temp_idata{};
+        for (int i = node.startTriangleIndex; i <= node.endTriangleIndex; i++) {
+            const bool hit = triangleIntersection(
+                ray,
+                vertices,
+                triangles[i].v1,
+                triangles[i].v2,
+                triangles[i].v3,
+                temp_idata,
+                backface,
+                max_t
+            );
+            if (hit && temp_idata.t < idata.t) {
+                idata = temp_idata;
+                idata.object = this;
+                idata.triangle_index = int(i);
+                if (any) return true;
+            }
+        }
+        return idata.t < max_t;
+    }
+
+    bool hitLeft = BVHIntersection(ray, bvh[node.left], idata, backface, any, max_t);
+    bool hitRight = BVHIntersection(ray, bvh[node.right], idata, backface, any, max_t);
+
+    return hitLeft || hitRight;
+}
+
 bool Object::intersect(Ray ray, IntersectionData& idata, bool backface, bool any, real_t max_t) const
 {
-    size_t num_triangles = triangles.size() / 3;
+    idata.t = max_t;
+
+    return BVHIntersection(ray, bvh[0], idata, backface, any, max_t);
+
+    size_t num_triangles = triangles.size();
     IntersectionData temp_idata{};
 
-    idata.t = max_t;
 
     if (hasAABB && !AABBIntersection(ray, aabb)) {
         return false;
@@ -223,9 +322,9 @@ bool Object::intersect(Ray ray, IntersectionData& idata, bool backface, bool any
         const bool hit = triangleIntersection(
             ray,
             vertices,
-            triangles[i*3+0],
-            triangles[i*3+1],
-            triangles[i*3+2],
+            triangles[i].v1,
+            triangles[i].v2,
+            triangles[i].v3,
             temp_idata,
             backface,
             max_t

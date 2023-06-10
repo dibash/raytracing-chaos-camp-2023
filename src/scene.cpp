@@ -33,6 +33,7 @@ bool Scene::intersect(Ray ray, IntersectionData& idata, bool backface, bool any,
     */
 
     for (const Object& o : objects) {
+        temp_idata.t = max_t;
         bool intersection = o.intersect(ray, temp_idata, backface, any, max_t);
         if (intersection && temp_idata.t < idata.t) {
             idata = temp_idata;
