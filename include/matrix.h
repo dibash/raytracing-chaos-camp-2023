@@ -10,7 +10,7 @@ struct Matrix {
             Vector r2;
             Vector r3;
         };
-        real_t m[3][3];
+        real_t m[3][sizeof(Vector)/sizeof(real_t)];
     };
 
     Matrix(

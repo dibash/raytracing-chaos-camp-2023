@@ -4,10 +4,21 @@
 
 #include <cmath>
 
+#ifndef WITH_SIMD
+#define WITH_SIMD 1
+#endif
+
+#if WITH_SIMD
+#include <xmmintrin.h>
+#endif
+
 struct Vector {
     union {
         struct { real_t x, y, z; };
         real_t v[3];
+#if WITH_SIMD
+        __m128 simd;
+#endif
     };
 
     Vector() : x(0), y(0), z(0) {}
@@ -106,6 +117,69 @@ inline Vector normalized(Vector t)
 
 // vector addition and subtraction
 
+#if WITH_SIMD
+
+inline Vector operator + (const Vector& a, const Vector& b)
+{
+    Vector res;
+    res.simd = _mm_add_ps(a.simd, b.simd);
+    return res;
+}
+
+inline Vector operator - (const Vector& a, const Vector& b)
+{
+    Vector res;
+    res.simd = _mm_sub_ps(a.simd, b.simd);
+    return res;
+}
+
+inline Vector operator - (const Vector& a)
+{
+    Vector res;
+    res.simd = _mm_sub_ps(_mm_set1_ps(0.0), a.simd);
+    return res;
+}
+
+inline real_t dot(const Vector& a, const Vector& b)
+{
+    /*
+    * Using _mm_dp_ps leads to worse performance.
+    __m128 res = _mm_dp_ps(a.simd, b.simd, 0xff);
+    return res.m128_f32[0];
+    */
+    Vector res;
+    res.simd = _mm_mul_ps(a.simd, b.simd);
+    return res.x + res.y + res.z;
+}
+
+/// dot product operator
+inline real_t operator * (const Vector& a, const Vector& b)
+{
+    return dot(a, b);
+}
+
+inline Vector cross(const Vector& a, const Vector& b)
+{
+    Vector res;
+    __m128 tmp0 = _mm_shuffle_ps(a.simd, a.simd, _MM_SHUFFLE(3, 0, 2, 1));
+    __m128 tmp1 = _mm_shuffle_ps(b.simd, b.simd, _MM_SHUFFLE(3, 1, 0, 2));
+    __m128 tmp2 = _mm_shuffle_ps(a.simd, a.simd, _MM_SHUFFLE(3, 1, 0, 2));
+    __m128 tmp3 = _mm_shuffle_ps(b.simd, b.simd, _MM_SHUFFLE(3, 0, 2, 1));
+    res.simd = _mm_sub_ps(
+        _mm_mul_ps(tmp0, tmp1),
+        _mm_mul_ps(tmp2, tmp3)
+    );
+    return res;
+}
+
+/// cross product operator
+inline Vector operator ^ (const Vector& a, const Vector& b)
+{
+    return cross(a, b);
+}
+
+#else // !WITH_SIMD
+
 inline Vector operator + (const Vector& a, const Vector& b)
 {
     return Vector(a.x + b.x, a.y + b.y, a.z + b.z);
@@ -148,6 +222,7 @@ inline Vector operator ^ (const Vector& a, const Vector& b)
 {
     return cross(a, b);
 }
+#endif // WITH_SIMD
 
 // scalar multiplication and division
 
