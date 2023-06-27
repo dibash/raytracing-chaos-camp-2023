@@ -36,12 +36,16 @@ int main(int argc, char* argv[])
         unique_ptr<Color> pixelData{ new Color[WIDTH * HEIGHT] };
         Color* pixels = pixelData.get();
         printf("Rendering...\n");
+        auto rstartTime = std::chrono::steady_clock::now();
         renderFile(pixels, argv[1]);
+        auto rendTime = std::chrono::steady_clock::now();
         Window window(WIDTH, HEIGHT, "Raytracing 2023");
         writePixels(window, pixels);
         auto endTime = std::chrono::steady_clock::now();
         auto duration = std::chrono::duration<double>(endTime - startTime);
-        printf("Rendering took %lf seconds.\n", duration.count());
+        auto rduration = std::chrono::duration<double>(rendTime - rstartTime);
+        printf("Rendering took %lf seconds.\n", rduration.count());
+        printf("Total %lf seconds.\n", duration.count());
         window.run();
     }
     else {

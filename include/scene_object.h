@@ -75,7 +75,7 @@ private:
 
     void calculate_bvh_recursive(int nodeIndex);
 
-    bool BVHIntersection(Ray ray, const BVHNode& node, IntersectionData& idata, bool backface, bool any, real_t max_t) const;
+    bool BVHIntersection(const Ray& ray, const BVHNode& node, IntersectionData& idata, bool backface, bool any, real_t max_t) const;
 };
 
 struct Light : Intersectable {

@@ -137,7 +137,7 @@ IntersectionData Object::smoothIntersection(const IntersectionData& idata) const
     return idataSmooth;
 }
 
-bool triangleIntersection(Ray ray, const std::vector<Vector>& vertices, int v1, int v2, int v3, IntersectionData& idata, bool backface = false, real_t max_t = 1e30f)
+bool triangleIntersection(const Ray& ray, const std::vector<Vector>& vertices, int v1, int v2, int v3, IntersectionData& idata, bool backface = false, real_t max_t = 1e30f)
 {
     real_t& t = idata.t;
     real_t& u = idata.u;
@@ -201,12 +201,50 @@ bool triangleIntersection(Ray ray, const std::vector<Vector>& vertices, int v1, 
     return true;
 }
 
-bool AABBIntersection(Ray ray, AABB aabb)
-{
-    const Vector invDir = Vector(1 / ray.dir.x, 1 / ray.dir.y, 1 / ray.dir.z);
+#if WITH_SIMD
 
+bool AABBIntersection(const Ray& ray, AABB aabb)
+{
+    // Precompute inverse direction
+    __m128 invDirX = _mm_set1_ps(1 / ray.dir.x);
+    __m128 invDirY = _mm_set1_ps(1 / ray.dir.y);
+    __m128 invDirZ = _mm_set1_ps(1 / ray.dir.z);
+
+    // Load AABB bounds into SIMD registers
+    __m128 aabbMinX = _mm_set1_ps(aabb.min.x);
+    __m128 aabbMinY = _mm_set1_ps(aabb.min.y);
+    __m128 aabbMinZ = _mm_set1_ps(aabb.min.z);
+    __m128 aabbMaxX = _mm_set1_ps(aabb.max.x);
+    __m128 aabbMaxY = _mm_set1_ps(aabb.max.y);
+    __m128 aabbMaxZ = _mm_set1_ps(aabb.max.z);
+
+    // Calculate tMin and tMax values
+    __m128 tMinX = _mm_mul_ps(_mm_sub_ps(aabbMinX, _mm_set1_ps(ray.origin.x)), invDirX);
+    __m128 tMaxX = _mm_mul_ps(_mm_sub_ps(aabbMaxX, _mm_set1_ps(ray.origin.x)), invDirX);
+    __m128 tMinY = _mm_mul_ps(_mm_sub_ps(aabbMinY, _mm_set1_ps(ray.origin.y)), invDirY);
+    __m128 tMaxY = _mm_mul_ps(_mm_sub_ps(aabbMaxY, _mm_set1_ps(ray.origin.y)), invDirY);
+    __m128 tMinZ = _mm_mul_ps(_mm_sub_ps(aabbMinZ, _mm_set1_ps(ray.origin.z)), invDirZ);
+    __m128 tMaxZ = _mm_mul_ps(_mm_sub_ps(aabbMaxZ, _mm_set1_ps(ray.origin.z)), invDirZ);
+
+    // Compute tMin and tMax for each axis
+    __m128 tMin = _mm_max_ps(_mm_max_ps(_mm_min_ps(tMinX, tMaxX), _mm_min_ps(tMinY, tMaxY)), _mm_min_ps(tMinZ, tMaxZ));
+    __m128 tMax = _mm_min_ps(_mm_min_ps(_mm_max_ps(tMinX, tMaxX), _mm_max_ps(tMinY, tMaxY)), _mm_max_ps(tMinZ, tMaxZ));
+
+    // Check if any component of tMax is greater than or equal to any component of tMin
+    __m128 mask = _mm_cmpge_ps(tMax, tMin);
+    int maskBits = _mm_movemask_ps(mask);
+
+    // Return true if any intersection is found
+    return maskBits != 0;
+}
+
+#else
+
+bool AABBIntersection(const Ray& ray, const AABB& aabb)
+{
     // X planes
-    real_t tMinX = (aabb.min.x - ray.origin.x) * invDir.x;
+    const real_t invDirX = 1 / ray.dir.x;
+    real_t tMinX = (aabb.min.x - ray.origin.x) * invDirX;
     if (tMinX > 0) {
         Vector pMinX = ray.origin + tMinX * ray.dir;
         if (pMinX.y >= aabb.min.y && pMinX.y <= aabb.max.y &&
@@ -215,7 +253,7 @@ bool AABBIntersection(Ray ray, AABB aabb)
         }
     }
 
-    real_t tMaxX = (aabb.max.x - ray.origin.x) * invDir.x;
+    real_t tMaxX = (aabb.max.x - ray.origin.x) * invDirX;
     if (tMaxX > 0) {
         Vector pMaxX = ray.origin + tMaxX * ray.dir;
         if (pMaxX.y >= aabb.min.y && pMaxX.y <= aabb.max.y &&
@@ -225,7 +263,8 @@ bool AABBIntersection(Ray ray, AABB aabb)
     }
 
     // Y planes
-    real_t tMinY = (aabb.min.y - ray.origin.y) * invDir.y;
+    const real_t invDirY = 1 / ray.dir.y;
+    real_t tMinY = (aabb.min.y - ray.origin.y) * invDirY;
     if (tMinY > 0) {
         Vector pMinY = ray.origin + tMinY * ray.dir;
         if (pMinY.x >= aabb.min.x && pMinY.x <= aabb.max.x &&
@@ -234,7 +273,7 @@ bool AABBIntersection(Ray ray, AABB aabb)
         }
     }
 
-    real_t tMaxY = (aabb.max.y - ray.origin.y) * invDir.y;
+    real_t tMaxY = (aabb.max.y - ray.origin.y) * invDirY;
     if (tMaxY > 0) {
         Vector pMaxY = ray.origin + tMaxY * ray.dir;
         if (pMaxY.x >= aabb.min.x && pMaxY.x <= aabb.max.x &&
@@ -244,7 +283,8 @@ bool AABBIntersection(Ray ray, AABB aabb)
     }
 
     // Z planes
-    real_t tMinZ = (aabb.min.z - ray.origin.z) * invDir.z;
+    const real_t invDirZ = 1 / ray.dir.z;
+    real_t tMinZ = (aabb.min.z - ray.origin.z) * invDirZ;
     if (tMinZ > 0) {
         Vector pMinZ = ray.origin + tMinZ * ray.dir;
         if (pMinZ.x >= aabb.min.x && pMinZ.x <= aabb.max.x &&
@@ -253,7 +293,7 @@ bool AABBIntersection(Ray ray, AABB aabb)
         }
     }
 
-    real_t tMaxZ = (aabb.max.z - ray.origin.z) * invDir.z;
+    real_t tMaxZ = (aabb.max.z - ray.origin.z) * invDirZ;
     if (tMaxZ > 0) {
         Vector pMaxZ = ray.origin + tMaxZ * ray.dir;
         if (pMaxZ.x >= aabb.min.x && pMaxZ.x <= aabb.max.x &&
@@ -265,7 +305,9 @@ bool AABBIntersection(Ray ray, AABB aabb)
     return false;
 }
 
-bool Object::BVHIntersection(Ray ray, const BVHNode& node, IntersectionData& idata, bool backface, bool any, real_t max_t) const
+#endif
+
+bool Object::BVHIntersection(const Ray& ray, const BVHNode& node, IntersectionData& idata, bool backface, bool any, real_t max_t) const
 {
     if (hasAABB && !AABBIntersection(ray, node.bounds)) {
         return false;
