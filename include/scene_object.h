@@ -99,6 +99,7 @@ private:
     PackedTriangles makePackedTriangles(size_t start, size_t end) const;
 #endif
     bool BVHIntersection(const Ray& ray, const BVHNode& node, IntersectionData& idata, bool backface, bool any, real_t max_t) const;
+    bool intersectBVHTriangles(const Ray& ray, const BVHNode& node, IntersectionData& idata, bool backface, bool any, real_t max_t) const;
 };
 
 struct Light : Intersectable {

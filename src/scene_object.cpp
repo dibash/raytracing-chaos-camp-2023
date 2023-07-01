@@ -443,6 +443,51 @@ bool AABBIntersection(const Ray& ray, const AABB& aabb)
 
 #endif
 
+bool Object::intersectBVHTriangles(const Ray& ray, const BVHNode& node, IntersectionData& idata, bool backface, bool any, real_t max_t) const
+{
+    IntersectionData temp_idata{};
+    temp_idata.t = 1e30f;
+#if (WITH_SIMD == 2)
+    PackedRay pRay{};
+    pRay.origin[0] = _mm256_set1_ps(ray.origin.x);
+    pRay.origin[1] = _mm256_set1_ps(ray.origin.y);
+    pRay.origin[2] = _mm256_set1_ps(ray.origin.z);
+    pRay.dir[0] = _mm256_set1_ps(ray.dir.x);
+    pRay.dir[1] = _mm256_set1_ps(ray.dir.y);
+    pRay.dir[2] = _mm256_set1_ps(ray.dir.z);
+    pRay.length = _mm256_set1_ps(max_t);
+
+    __m256 backfaceMask = backface ? zeroM256 : fullMaskM256;
+    bool hit = intersectPackedTriangles(pRay, node.pack, temp_idata, backfaceMask);
+    if (hit && temp_idata.t < idata.t) {
+        idata = temp_idata;
+        idata.object = this;
+        idata.triangle_index = node.startTriangleIndex + idata.triangle_index;
+    }
+    return hit;
+#else
+    for (int i = node.startTriangleIndex; i <= node.endTriangleIndex; i++) {
+        const bool hit = triangleIntersection(
+            ray,
+            vertices,
+            triangles[i].v1,
+            triangles[i].v2,
+            triangles[i].v3,
+            temp_idata,
+            backface,
+            max_t
+        );
+        if (hit && temp_idata.t < idata.t) {
+            idata = temp_idata;
+            idata.object = this;
+            idata.triangle_index = int(i);
+            if (any) return true;
+        }
+    }
+#endif
+    return idata.t < max_t;
+}
+
 bool Object::BVHIntersection(const Ray& ray, const BVHNode& node, IntersectionData& idata, bool backface, bool any, real_t max_t) const
 {
     if (hasAABB && !AABBIntersection(ray, node.bounds)) {
@@ -454,47 +499,7 @@ bool Object::BVHIntersection(const Ray& ray, const BVHNode& node, IntersectionDa
     }
 
     if (node.left == -1 && node.right == -1) {
-        IntersectionData temp_idata{};
-        temp_idata.t = 1e30f;
-#if (WITH_SIMD == 2)
-        PackedRay pRay{};
-        pRay.origin[0] = _mm256_set1_ps(ray.origin.x);
-        pRay.origin[1] = _mm256_set1_ps(ray.origin.y);
-        pRay.origin[2] = _mm256_set1_ps(ray.origin.z);
-        pRay.dir[0] = _mm256_set1_ps(ray.dir.x);
-        pRay.dir[1] = _mm256_set1_ps(ray.dir.y);
-        pRay.dir[2] = _mm256_set1_ps(ray.dir.z);
-        pRay.length = _mm256_set1_ps(max_t);
-
-        __m256 backfaceMask = backface ? zeroM256 : fullMaskM256;
-        bool hit = intersectPackedTriangles(pRay, node.pack, temp_idata, backfaceMask);
-        if (hit && temp_idata.t < idata.t) {
-            idata = temp_idata;
-            idata.object = this;
-            idata.triangle_index = node.startTriangleIndex + idata.triangle_index;
-        }
-        return hit;
-#else
-        for (int i = node.startTriangleIndex; i <= node.endTriangleIndex; i++) {
-            const bool hit = triangleIntersection(
-                ray,
-                vertices,
-                triangles[i].v1,
-                triangles[i].v2,
-                triangles[i].v3,
-                temp_idata,
-                backface,
-                max_t
-            );
-            if (hit && temp_idata.t < idata.t) {
-                idata = temp_idata;
-                idata.object = this;
-                idata.triangle_index = int(i);
-                if (any) return true;
-            }
-        }
-#endif
-        return idata.t < max_t;
+        return intersectBVHTriangles(ray, node, idata, backface, any, max_t);
     }
 
     bool hitLeft = BVHIntersection(ray, bvh[node.left], idata, backface, any, max_t);
