@@ -60,6 +60,9 @@ void Object::calculate_bvh_recursive(int nodeIndex)
 
     // If termination criteria are met, stop recursion and return
     if (bvh[nodeIndex].endTriangleIndex - bvh[nodeIndex].startTriangleIndex <= MAX_TRIANGLES_PER_LEAF) {
+#if (WITH_SIMD == 2)
+        bvh[nodeIndex].pack = makePackedTriangles(bvh[nodeIndex].startTriangleIndex, bvh[nodeIndex].endTriangleIndex);
+#endif
         return;
     }
 
@@ -201,6 +204,139 @@ bool triangleIntersection(const Ray& ray, const std::vector<Vector>& vertices, i
     return true;
 }
 
+#if (WITH_SIMD == 2)
+
+void avx_multi_cross(__m256 result[3], const __m256 a[3], const __m256 b[3])
+{
+    result[0] = _mm256_fmsub_ps(a[1], b[2], _mm256_mul_ps(b[1], a[2]));
+    result[1] = _mm256_fmsub_ps(a[2], b[0], _mm256_mul_ps(b[2], a[0]));
+    result[2] = _mm256_fmsub_ps(a[0], b[1], _mm256_mul_ps(b[0], a[1]));
+}
+
+__m256 avx_multi_dot(const __m256 a[3], const __m256 b[3])
+{
+    return _mm256_fmadd_ps(a[2], b[2], _mm256_fmadd_ps(a[1], b[1], _mm256_mul_ps(a[0], b[0])));
+}
+
+void avx_multi_sub(__m256 result[3], const __m256 a[3], const __m256 b[3])
+{
+    result[0] = _mm256_sub_ps(a[0], b[0]);
+    result[1] = _mm256_sub_ps(a[1], b[1]);
+    result[2] = _mm256_sub_ps(a[2], b[2]);
+}
+
+const __m256 oneM256 = _mm256_set1_ps(1.0f);
+const __m256 minusOneM256 = _mm256_set1_ps(-1.0f);
+const __m256 positiveEpsilonM256 = _mm256_set1_ps(EPSILON);
+const __m256 negativeEpsilonM256 = _mm256_set1_ps(-EPSILON);
+const __m256 zeroM256 = _mm256_set1_ps(0.0f);
+const __m256 fullMaskM256 = _mm256_castsi256_ps(_mm256_set1_epi32(-1));
+
+bool intersectPackedTriangles(const PackedRay& pRay, const PackedTriangles& packedTris, IntersectionData& idata, __m256 backfaceMask)
+{
+    __m256 h[3];
+    avx_multi_cross(h, pRay.dir, packedTris.e2);
+    __m256 d = avx_multi_dot(packedTris.e1, h);
+    __m256 f = _mm256_div_ps(oneM256, d);
+    __m256 s[3];
+    avx_multi_sub(s, pRay.origin, packedTris.v0);
+    __m256 u = _mm256_mul_ps(f, avx_multi_dot(s, h));
+    __m256 q[3];
+    avx_multi_cross(q, s, packedTris.e1);
+    __m256 v = _mm256_mul_ps(f, avx_multi_dot(pRay.dir, q));
+    __m256 t = _mm256_mul_ps(f, avx_multi_dot(packedTris.e2, q));
+
+    // Failure conditions
+    __m256 failed = _mm256_and_ps(
+        _mm256_or_ps(_mm256_cmp_ps(d, negativeEpsilonM256, _CMP_GT_OQ), backfaceMask),
+        _mm256_cmp_ps(d, positiveEpsilonM256, _CMP_LT_OQ)
+    );
+    //__m256 failed = _mm256_cmp_ps(d, positiveEpsilonM256, _CMP_LT_OQ);
+
+    failed = _mm256_or_ps(failed, _mm256_cmp_ps(u, zeroM256, _CMP_LT_OQ));
+    failed = _mm256_or_ps(failed, _mm256_cmp_ps(v, zeroM256, _CMP_LT_OQ));
+    failed = _mm256_or_ps(failed, _mm256_cmp_ps(_mm256_add_ps(u, v), oneM256, _CMP_GT_OQ));
+    failed = _mm256_or_ps(failed, _mm256_cmp_ps(t, zeroM256, _CMP_LT_OQ));
+    failed = _mm256_or_ps(failed, _mm256_cmp_ps(t, pRay.length, _CMP_GT_OQ));
+
+    __m256 tResults = _mm256_blendv_ps(t, minusOneM256, failed);
+
+    int mask = _mm256_movemask_ps(tResults);
+    if (mask != 0xFF)
+    {
+        // There is at least one intersection
+        int idx = -1;
+
+        real_t* ptr = (real_t*)&tResults;
+        for (int i = 0; i < 8; ++i)
+        {
+            if (ptr[i] > 0.0f && ptr[i] < idata.t)
+            {
+                idata.t = ptr[i];
+                idx = i;
+            }
+        }
+
+        if (idx != -1) {
+            idata.u = ((real_t*)&u)[idx];
+            idata.v = ((real_t*)&v)[idx];
+            idata.w = 1.f - (idata.u + idata.v);
+            Vector o{ ((real_t*)&pRay.origin[0])[idx], ((real_t*)&pRay.origin[1])[idx], ((real_t*)&pRay.origin[2])[idx] };
+            Vector d{ ((real_t*)&pRay.dir[0])[idx], ((real_t*)&pRay.dir[1])[idx], ((real_t*)&pRay.dir[2])[idx] };
+            idata.ip = o + d * idata.t;
+            Vector e1{ ((real_t*)&packedTris.e1[0])[idx], ((real_t*)&packedTris.e1[1])[idx], ((real_t*)&packedTris.e1[2])[idx] };
+            Vector e2{ ((real_t*)&packedTris.e2[0])[idx], ((real_t*)&packedTris.e2[1])[idx], ((real_t*)&packedTris.e2[2])[idx] };
+            idata.normal = normalized(cross(e1, e2));
+            idata.triangle_index = idx;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+PackedTriangles Object::makePackedTriangles(size_t start, size_t end) const
+{
+    PackedTriangles pTri{};
+    for (size_t i = 0; i < 3; ++i) {
+        __m256 v2 = _mm256_set_ps(
+            vertices[triangles[std::min(start + 7, end)].v2].v[i],
+            vertices[triangles[std::min(start + 6, end)].v2].v[i],
+            vertices[triangles[std::min(start + 5, end)].v2].v[i],
+            vertices[triangles[std::min(start + 4, end)].v2].v[i],
+            vertices[triangles[std::min(start + 3, end)].v2].v[i],
+            vertices[triangles[std::min(start + 2, end)].v2].v[i],
+            vertices[triangles[std::min(start + 1, end)].v2].v[i],
+            vertices[triangles[std::min(start + 0, end)].v2].v[i]
+        );
+        __m256 v3 = _mm256_set_ps(
+            vertices[triangles[std::min(start + 7, end)].v3].v[i],
+            vertices[triangles[std::min(start + 6, end)].v3].v[i],
+            vertices[triangles[std::min(start + 5, end)].v3].v[i],
+            vertices[triangles[std::min(start + 4, end)].v3].v[i],
+            vertices[triangles[std::min(start + 3, end)].v3].v[i],
+            vertices[triangles[std::min(start + 2, end)].v3].v[i],
+            vertices[triangles[std::min(start + 1, end)].v3].v[i],
+            vertices[triangles[std::min(start + 0, end)].v3].v[i]
+        );
+        pTri.v0[i] = _mm256_set_ps(
+            vertices[triangles[std::min(start + 7, end)].v1].v[i],
+            vertices[triangles[std::min(start + 6, end)].v1].v[i],
+            vertices[triangles[std::min(start + 5, end)].v1].v[i],
+            vertices[triangles[std::min(start + 4, end)].v1].v[i],
+            vertices[triangles[std::min(start + 3, end)].v1].v[i],
+            vertices[triangles[std::min(start + 2, end)].v1].v[i],
+            vertices[triangles[std::min(start + 1, end)].v1].v[i],
+            vertices[triangles[std::min(start + 0, end)].v1].v[i]
+        );
+        pTri.e1[i] = _mm256_sub_ps(v2, pTri.v0[i]);
+        pTri.e2[i] = _mm256_sub_ps(v3, pTri.v0[i]);
+    }
+    return pTri;
+}
+
+#endif
+
 #if WITH_SIMD
 
 const __m128 oneM128 = _mm_set1_ps(1.f);
@@ -314,6 +450,26 @@ bool Object::BVHIntersection(const Ray& ray, const BVHNode& node, IntersectionDa
 
     if (node.left == -1 && node.right == -1) {
         IntersectionData temp_idata{};
+        temp_idata.t = 1e30f;
+#if (WITH_SIMD == 2)
+        PackedRay pRay{};
+        pRay.origin[0] = _mm256_set1_ps(ray.origin.x);
+        pRay.origin[1] = _mm256_set1_ps(ray.origin.y);
+        pRay.origin[2] = _mm256_set1_ps(ray.origin.z);
+        pRay.dir[0] = _mm256_set1_ps(ray.dir.x);
+        pRay.dir[1] = _mm256_set1_ps(ray.dir.y);
+        pRay.dir[2] = _mm256_set1_ps(ray.dir.z);
+        pRay.length = _mm256_set1_ps(max_t);
+
+        __m256 backfaceMask = backface ? zeroM256 : fullMaskM256;
+        bool hit = intersectPackedTriangles(pRay, node.pack, temp_idata, backfaceMask);
+        if (hit && temp_idata.t < idata.t) {
+            idata = temp_idata;
+            idata.object = this;
+            idata.triangle_index = node.startTriangleIndex + idata.triangle_index;
+        }
+        return hit;
+#else
         for (int i = node.startTriangleIndex; i <= node.endTriangleIndex; i++) {
             const bool hit = triangleIntersection(
                 ray,
@@ -332,6 +488,7 @@ bool Object::BVHIntersection(const Ray& ray, const BVHNode& node, IntersectionDa
                 if (any) return true;
             }
         }
+#endif
         return idata.t < max_t;
     }
 

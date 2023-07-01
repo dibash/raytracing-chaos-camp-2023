@@ -4,12 +4,32 @@
 #include "utils.h"
 #include "material.h"
 
+
+#if (WITH_SIMD == 2)
+struct PackedTriangles
+{
+    __m256 e1[3];
+    __m256 e2[3];
+    __m256 v0[3];
+};
+
+struct PackedRay
+{
+    __m256 origin[3];
+    __m256 dir[3];
+    __m256 length;
+};
+#endif
+
 struct BVHNode {
     AABB bounds;
     int left = -1;
     int right = -1;
     int startTriangleIndex = -1;
     int endTriangleIndex = -1;
+#if WITH_SIMD
+    PackedTriangles pack;
+#endif
 };
 
 struct Triangle {
@@ -75,6 +95,7 @@ private:
 
     void calculate_bvh_recursive(int nodeIndex);
 
+    PackedTriangles makePackedTriangles(size_t start, size_t end) const;
     bool BVHIntersection(const Ray& ray, const BVHNode& node, IntersectionData& idata, bool backface, bool any, real_t max_t) const;
 };
 

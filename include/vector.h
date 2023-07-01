@@ -5,11 +5,12 @@
 #include <cmath>
 
 #ifndef WITH_SIMD
-#define WITH_SIMD 1
+#define WITH_SIMD 2
 #endif
 
 #if WITH_SIMD
 #include <xmmintrin.h>
+#include <immintrin.h>
 #endif
 
 struct Vector {
