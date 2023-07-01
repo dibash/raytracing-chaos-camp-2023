@@ -203,39 +203,34 @@ bool triangleIntersection(const Ray& ray, const std::vector<Vector>& vertices, i
 
 #if WITH_SIMD
 
+const __m128 oneM128 = _mm_set1_ps(1.f);
 bool AABBIntersection(const Ray& ray, AABB aabb)
 {
     // Precompute inverse direction
-    __m128 invDirX = _mm_set1_ps(1 / ray.dir.x);
-    __m128 invDirY = _mm_set1_ps(1 / ray.dir.y);
-    __m128 invDirZ = _mm_set1_ps(1 / ray.dir.z);
+    __m128 invDir = _mm_div_ps(oneM128, ray.dir.simd);
 
-    // Load AABB bounds into SIMD registers
-    __m128 aabbMinX = _mm_set1_ps(aabb.min.x);
-    __m128 aabbMinY = _mm_set1_ps(aabb.min.y);
-    __m128 aabbMinZ = _mm_set1_ps(aabb.min.z);
-    __m128 aabbMaxX = _mm_set1_ps(aabb.max.x);
-    __m128 aabbMaxY = _mm_set1_ps(aabb.max.y);
-    __m128 aabbMaxZ = _mm_set1_ps(aabb.max.z);
+    // Calculate the intersections with the AABB
+    __m128 t0 = _mm_mul_ps(_mm_sub_ps(aabb.min.simd, ray.origin.simd), invDir);
+    __m128 t1 = _mm_mul_ps(_mm_sub_ps(aabb.max.simd, ray.origin.simd), invDir);
 
-    // Calculate tMin and tMax values
-    __m128 tMinX = _mm_mul_ps(_mm_sub_ps(aabbMinX, _mm_set1_ps(ray.origin.x)), invDirX);
-    __m128 tMaxX = _mm_mul_ps(_mm_sub_ps(aabbMaxX, _mm_set1_ps(ray.origin.x)), invDirX);
-    __m128 tMinY = _mm_mul_ps(_mm_sub_ps(aabbMinY, _mm_set1_ps(ray.origin.y)), invDirY);
-    __m128 tMaxY = _mm_mul_ps(_mm_sub_ps(aabbMaxY, _mm_set1_ps(ray.origin.y)), invDirY);
-    __m128 tMinZ = _mm_mul_ps(_mm_sub_ps(aabbMinZ, _mm_set1_ps(ray.origin.z)), invDirZ);
-    __m128 tMaxZ = _mm_mul_ps(_mm_sub_ps(aabbMaxZ, _mm_set1_ps(ray.origin.z)), invDirZ);
+    // Calculate the min and max intersections for each axis
+    Vector tMin;
+    tMin.simd = _mm_min_ps(t0, t1);
+    __m128 tMax = _mm_max_ps(t0, t1);
 
-    // Compute tMin and tMax for each axis
-    __m128 tMin = _mm_max_ps(_mm_max_ps(_mm_min_ps(tMinX, tMaxX), _mm_min_ps(tMinY, tMaxY)), _mm_min_ps(tMinZ, tMaxZ));
-    __m128 tMax = _mm_min_ps(_mm_min_ps(_mm_max_ps(tMinX, tMaxX), _mm_max_ps(tMinY, tMaxY)), _mm_max_ps(tMinZ, tMaxZ));
+    // Bound checks
+    __m128 xMin = _mm_set1_ps(tMin.x);
+    __m128 yMin = _mm_set1_ps(tMin.y);
+    __m128 zMin = _mm_set1_ps(tMin.z);
+    __m128 maskX = _mm_cmpge_ps(xMin, tMax);
+    __m128 maskY = _mm_cmpge_ps(yMin, tMax);
+    __m128 maskZ = _mm_cmpge_ps(zMin, tMax);
 
-    // Check if any component of tMax is greater than or equal to any component of tMin
-    __m128 mask = _mm_cmpge_ps(tMax, tMin);
-    int maskBits = _mm_movemask_ps(mask);
+    // Only consider the first three bits
+    int maskBits = _mm_movemask_ps(maskX) | _mm_movemask_ps(maskY) | _mm_movemask_ps(maskZ);
 
-    // Return true if any intersection is found
-    return maskBits != 0;
+    // Return true if any intersection is found. Only consider the first 3 bits
+    return (maskBits & 0b111) == 0;
 }
 
 #else
