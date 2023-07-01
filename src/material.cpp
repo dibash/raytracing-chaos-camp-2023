@@ -2,6 +2,8 @@
 #include "scene.h"
 #include "scene_object.h"
 
+#include <random>
+
 const int MAX_DEPTH = 8;
 
 Color ConstantMaterial::shade(const Scene& scene, const Ray& ray, const IntersectionData& idata, int depth) const
@@ -13,6 +15,28 @@ Color ConstantMaterial::shade(const Scene& scene, const Ray& ray, const Intersec
     const real_t theta = dot(-ray.dir, idataSmooth.normal);
     const real_t val = theta / 3 * 2 + 1.0f / 3;
     return val * albedo;
+}
+
+const int GI_RAYS = 128;
+const int GI_DEPTH = 1;
+thread_local std::random_device rd;
+thread_local std::mt19937 gen(rd());
+thread_local std::uniform_real_distribution<float> dis(0.0f, 1.0f);
+
+Vector randomUnitVector()
+{
+    real_t theta = 2.0f * PI * dis(gen);
+    real_t z = 2.0f * dis(gen) - 1.0f;
+    real_t r = std::sqrt(1.0f - z * z);
+
+    return { r * std::cos(theta), r * std::sin(theta), z };
+}
+
+Ray generateGIRay(const Ray& incomingRay, const IntersectionData& idata)
+{
+    Vector reflectedDirection = reflect(incomingRay.dir, idata.normal);
+    Vector newDirection = reflectedDirection + randomUnitVector();
+    return { idata.ip, newDirection, incomingRay.giDepth + 1 };
 }
 
 Color DiffuseMaterial::shade(const Scene& scene, const Ray& ray, const IntersectionData& idata, int depth) const
@@ -39,13 +63,27 @@ Color DiffuseMaterial::shade(const Scene& scene, const Ray& ray, const Intersect
         }
     }
 
+    Color giColor = { 0,0,0,1 };
+    int giTraced = 0;
+    if (ray.giDepth < GI_DEPTH) {
+        for (int i = 0; i < GI_RAYS; ++i) {
+            IntersectionData idataGI;
+            const Ray giRay = generateGIRay(ray, idataSmooth);
+            bool intersect = scene.intersect(giRay, idataGI);
+            if (intersect && idataGI.object && idataGI.object->getMaterial()) {
+                giColor += idataGI.object->getMaterial()->shade(scene, giRay, idataGI, depth + 1);
+            }
+            giTraced++;
+        }
+    }
+
     if (scene.lights.empty()) {
         const real_t theta = dot(-ray.dir, idataSmooth.normal);
         const real_t val = theta / 3 * 2 + 1.0f / 3;
         return val * albedo;
     }
 
-    return finalColor;
+    return (1.0f / (giTraced + 1)) * (finalColor + giColor);
 }
 
 Color ReflectiveMaterial::shade(const Scene& scene, const Ray& ray, const IntersectionData& idata, int depth) const
@@ -57,7 +95,7 @@ Color ReflectiveMaterial::shade(const Scene& scene, const Ray& ray, const Inters
     Vector ip = idataSmooth.ip + idataSmooth.normal * shadowBias;
 
     const Vector reflectedDir = reflect(ray.dir, idataSmooth.normal);
-    const Ray reflectedRay = { ip, reflectedDir };
+    const Ray reflectedRay = { ip, reflectedDir, ray.giDepth };
     IntersectionData idata2;
 
     // Compute the reflected color recursively
@@ -86,7 +124,7 @@ Color RefractiveMaterial::shade(const Scene& scene, const Ray& ray, const Inters
 
     Color reflectedColor;
     const Vector reflectedDir = normalized(reflect(ray.dir, normal));
-    const Ray reflectedRay = { inside ? ipIn : ipOut, reflectedDir };
+    const Ray reflectedRay = { inside ? ipIn : ipOut, reflectedDir, ray.giDepth };
 
     // No point in tracing reflections too deep inside
     if (depth < 2) {
@@ -104,7 +142,7 @@ Color RefractiveMaterial::shade(const Scene& scene, const Ray& ray, const Inters
     bool totalInternalReflection = false;
     const Vector refractedDir = normalized(refract(ray.dir, normal, ior, totalInternalReflection));
     const Vector refractedRayStart = (inside && !totalInternalReflection) ? ipOut : ipIn;
-    const Ray refractedRay = { refractedRayStart, refractedDir };
+    const Ray refractedRay = { refractedRayStart, refractedDir, ray.giDepth };
 
     if (depth < MAX_DEPTH) {
         IntersectionData idata3;

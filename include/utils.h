@@ -64,6 +64,7 @@ struct IntersectionData {
 struct Ray {
     Vector origin = {};
     Vector dir = {};
+    int giDepth = 0;
 };
 
 struct AABB {
