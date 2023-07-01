@@ -27,7 +27,7 @@ struct BVHNode {
     int right = -1;
     int startTriangleIndex = -1;
     int endTriangleIndex = -1;
-#if WITH_SIMD
+#if (WITH_SIMD == 2)
     PackedTriangles pack;
 #endif
 };
@@ -95,7 +95,9 @@ private:
 
     void calculate_bvh_recursive(int nodeIndex);
 
+#if (WITH_SIMD == 2)
     PackedTriangles makePackedTriangles(size_t start, size_t end) const;
+#endif
     bool BVHIntersection(const Ray& ray, const BVHNode& node, IntersectionData& idata, bool backface, bool any, real_t max_t) const;
 };
 

@@ -5,7 +5,7 @@
 #include <cmath>
 
 #ifndef WITH_SIMD
-#define WITH_SIMD 2
+#define WITH_SIMD 1
 #endif
 
 #if WITH_SIMD
