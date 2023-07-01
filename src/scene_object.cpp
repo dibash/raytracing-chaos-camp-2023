@@ -39,11 +39,16 @@ const int MAX_TRIANGLES_PER_LEAF = 8;
 void Object::calculate_bvh()
 {
     bvh.clear();
+    // Make a lower-bound estimate for the number of nodes.
+    // In a balanced full tree, the amount of nodes is T/MAX_T * 2 - 1
+    // So use that as a starting point
+    size_t est = triangles.size() / MAX_TRIANGLES_PER_LEAF * 2;
+    bvh.reserve(est);
     BVHNode& root = bvh.emplace_back();
     root.startTriangleIndex = 0;
     root.endTriangleIndex = int(triangles.size() - 1);
     calculate_bvh_recursive(0);
-    // root is invalidated after the last call. DO NOT USE
+    // root is likely to be invalidated after the last call. DO NOT USE
 }
 
 void Object::calculate_bvh_recursive(int nodeIndex)
