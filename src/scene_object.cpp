@@ -344,36 +344,7 @@ bool Object::BVHIntersection(const Ray& ray, const BVHNode& node, IntersectionDa
 bool Object::intersect(Ray ray, IntersectionData& idata, bool backface, bool any, real_t max_t) const
 {
     idata.t = max_t;
-
     return BVHIntersection(ray, bvh[0], idata, backface, any, max_t);
-
-    size_t num_triangles = triangles.size();
-    IntersectionData temp_idata{};
-
-
-    if (hasAABB && !AABBIntersection(ray, aabb)) {
-        return false;
-    }
-
-    for (size_t i = 0; i < num_triangles; i++) {
-        const bool hit = triangleIntersection(
-            ray,
-            vertices,
-            triangles[i].v1,
-            triangles[i].v2,
-            triangles[i].v3,
-            temp_idata,
-            backface,
-            max_t
-        );
-        if (hit && temp_idata.t < idata.t) {
-            idata = temp_idata;
-            idata.object = this;
-            idata.triangle_index = int(i);
-            if (any) return true;
-        }
-    }
-    return idata.t < max_t;
 }
 
 bool solveQuadratic(const real_t& a, const real_t& b, const real_t& c, real_t& x0, real_t& x1)
